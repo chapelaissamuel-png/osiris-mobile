@@ -1,0 +1,34 @@
+kind = "web"
+previewPath = "/"
+title = "Osiris"
+version = "1.0.0"
+
+[[services]]
+localPort = 3000
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "npm run dev"
+cwd = "artifacts/osiris"
+
+[services.development.env]
+PORT = "3000"
+
+[services.production]
+
+[services.production.build]
+args = ["npm", "run", "build"]
+cwd = "artifacts/osiris"
+
+[services.production.build.env]
+NODE_ENV = "production"
+PORT = "3000"
+
+[services.production.run]
+args = ["npm", "run", "start"]
+cwd = "artifacts/osiris"
+
+[services.production.run.env]
+PORT = "3000"
+NODE_ENV = "production"
