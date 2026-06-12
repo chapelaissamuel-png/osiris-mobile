@@ -10,34 +10,38 @@
 body{background:var(--bg);overflow:hidden;font-family:var(--f);color:#ccc}
 canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!important}
 
-/* ── HEADER ── */
-#hdr{position:fixed;top:0;left:0;right:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:30;pointer-events:none;background:linear-gradient(to bottom,rgba(5,8,13,.93) 55%,transparent)}
+/* ── HEADER (2-row layout) ── */
+#hdr{position:fixed;top:0;left:0;right:0;z-index:30;pointer-events:none;background:linear-gradient(to bottom,rgba(5,8,13,.97) 78%,transparent)}
+.hdr-r1{display:flex;align-items:center;gap:6px;padding:8px 14px 4px;pointer-events:none}
 #back-btn{pointer-events:auto;flex:0 0 auto;background:none;border:1px solid rgba(255,180,84,.38);color:var(--g);font:bold 8px/1 var(--f);letter-spacing:.2em;padding:7px 12px;text-decoration:none;text-transform:uppercase;transition:background .2s;white-space:nowrap}
 #back-btn:hover{background:rgba(255,180,84,.1)}
-#hdr-title{flex:1;text-align:center;font:bold 9px/1 var(--f);letter-spacing:.5em;color:var(--c);text-transform:uppercase;white-space:nowrap}
-#hdr-r{flex:0 0 80px}
+#hdr-title{flex:1;text-align:center;font:bold 9px/1 var(--f);letter-spacing:.45em;color:var(--c);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ── LEVEL NAV ── */
-#lvl-nav{position:fixed;top:50px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:30;pointer-events:auto}
-.lvb{background:rgba(5,8,13,.78);border:1px solid rgba(95,208,230,.17);color:rgba(95,208,230,.42);font:7px/1 var(--f);letter-spacing:.14em;padding:5px 8px;cursor:pointer;transition:all .22s;text-transform:uppercase;white-space:nowrap}
+/* ── LEVEL NAV (inside header row 2) ── */
+#lvl-nav{display:flex;gap:3px;padding:2px 10px 9px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;pointer-events:auto;justify-content:center;flex-wrap:wrap}
+#lvl-nav::-webkit-scrollbar{display:none}
+@media(max-width:440px){#lvl-nav{flex-wrap:nowrap;justify-content:flex-start}}
+.lvb{background:rgba(5,8,13,.78);border:1px solid rgba(95,208,230,.17);color:rgba(95,208,230,.42);font:7px/1 var(--f);letter-spacing:.14em;padding:5px 8px;cursor:pointer;transition:all .22s;text-transform:uppercase;white-space:nowrap;flex:0 0 auto}
 .lvb:hover{border-color:rgba(95,208,230,.4);color:rgba(95,208,230,.78);background:rgba(95,208,230,.05)}
 .lvb.on{border-color:var(--c);color:var(--c);background:rgba(95,208,230,.11);box-shadow:0 0 9px rgba(95,208,230,.13)}
 .lvb.zod{border-color:rgba(255,180,84,.28);color:rgba(255,180,84,.55)}
 .lvb.zod.on{border-color:var(--g);color:var(--g);background:rgba(255,180,84,.1);box-shadow:0 0 9px rgba(255,180,84,.12)}
-@media(max-width:520px){.lvb{padding:4px 5px;font-size:6px;letter-spacing:.06em}}
 
 /* ── CONTROLS ── */
-#ctrl{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;background:var(--gl);border:1px solid var(--br);padding:8px 14px;pointer-events:auto;font:7px/1 var(--f);letter-spacing:.1em;z-index:20}
+#ctrl{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;background:var(--gl);border:1px solid var(--br);padding:8px 12px;pointer-events:auto;font:7px/1 var(--f);letter-spacing:.1em;z-index:20}
 .cl{color:rgba(95,208,230,.5);text-transform:uppercase}
-#spd{width:85px;cursor:pointer;-webkit-appearance:none;height:2px;background:linear-gradient(to right,var(--c) 33%,rgba(95,208,230,.2) 33%);outline:none;border:none}
+#spd{width:80px;cursor:pointer;-webkit-appearance:none;height:2px;background:linear-gradient(to right,var(--c) 33%,rgba(95,208,230,.2) 33%);outline:none;border:none}
 #spd::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;border-radius:50%;background:var(--c);cursor:pointer}
-#spd-lbl{color:var(--c);min-width:68px}
-#date-disp{color:rgba(255,255,255,.3);font-size:7px}
+#spd-lbl{color:var(--c);min-width:62px}
 .sep{color:rgba(95,208,230,.2)}
 .cbtn{background:none;border:1px solid rgba(95,208,230,.27);color:var(--c);padding:3px 8px;cursor:pointer;font:7px/1 var(--f);letter-spacing:.07em;transition:background .18s}
 .cbtn:hover{background:rgba(95,208,230,.06)}
-#date-in{background:rgba(5,8,13,.6);border:1px solid rgba(95,208,230,.22);color:var(--c);font:7px/1 var(--f);letter-spacing:.08em;padding:3px 6px;cursor:pointer;color-scheme:dark}
-#date-in::-webkit-calendar-picker-indicator{opacity:.4;cursor:pointer;filter:invert(1) sepia(1) saturate(3) hue-rotate(150deg)}
+/* Bug 2 fix: proper width + padding-right so calendar icon doesn't overlap text */
+#date-in,#time-in{background:rgba(5,8,13,.6);border:1px solid rgba(95,208,230,.22);color:var(--c);font:7px/1 var(--f);letter-spacing:.07em;padding:3px 6px;cursor:pointer;color-scheme:dark;min-height:22px}
+#date-in{width:130px;min-width:130px;padding-right:6px}
+#time-in{width:82px;min-width:72px}
+#date-in::-webkit-calendar-picker-indicator,
+#time-in::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer;filter:invert(1) sepia(1) saturate(3) hue-rotate(150deg);margin-left:2px}
 #snd{border-color:rgba(255,180,84,.28);color:rgba(255,180,84,.55)}
 #snd.on{border-color:var(--g);color:var(--g);box-shadow:0 0 6px rgba(255,180,84,.14)}
 
@@ -94,20 +98,23 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
 <canvas id="c"></canvas>
 <div id="flash"></div>
 
+<!-- Bug 1 fix: 2-row header, lvl-nav is row 2 inside hdr -->
 <div id="hdr">
-  <a id="back-btn" href="/">← BACK</a>
-  <div id="hdr-title">OSIRIS — COSMIC EXPLORER</div>
-  <div id="hdr-r"></div>
+  <div class="hdr-r1">
+    <a id="back-btn" href="/">← BACK</a>
+    <div id="hdr-title">OSIRIS — COSMIC EXPLORER</div>
+    <div style="flex:0 0 40px"></div>
+  </div>
+  <div id="lvl-nav">
+    <button class="lvb" data-l="0">⊕ EARTH</button>
+    <button class="lvb on" data-l="1">☀ SOLAR</button>
+    <button class="lvb" data-l="2">◉ GALAXY</button>
+    <button class="lvb" data-l="3">∞ UNIVERSE</button>
+    <button class="lvb zod" data-l="4">♈ ZODIAC</button>
+  </div>
 </div>
 
-<div id="lvl-nav">
-  <button class="lvb" data-l="0">⊕ EARTH</button>
-  <button class="lvb on" data-l="1">☀ SOLAR</button>
-  <button class="lvb" data-l="2">◉ GALAXY</button>
-  <button class="lvb" data-l="3">∞ UNIVERSE</button>
-  <button class="lvb zod" data-l="4">♈ ZODIAC</button>
-</div>
-
+<!-- Bug 2 fix: removed duplicate date-disp span; added time-in -->
 <div id="ctrl">
   <span class="cl">TIME</span>
   <input type="range" id="spd" min="0" max="6" step="0.02" value="2.0"/>
@@ -115,8 +122,7 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
   <span class="sep">|</span>
   <button class="cbtn" id="pbtn">⏸ PAUSE</button>
   <input type="date" id="date-in"/>
-  <span class="sep">|</span>
-  <span id="date-disp">—</span>
+  <input type="time" id="time-in"/>
   <span class="sep">|</span>
   <button class="cbtn" id="snd">♪ SOUND</button>
 </div>
@@ -182,7 +188,7 @@ const COMET={a:17.8,e:.967,L0:111.3,inc:162.3,T:27507};
 // ═══ ZODIAC
 const ZN=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
 const ZS=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
-const ZE=[0,1,2,3,0,1,2,3,0,1,2,3]; // fire/earth/air/water
+const ZE=[0,1,2,3,0,1,2,3,0,1,2,3];
 const ZEC=['rgba(255,72,32,.13)','rgba(44,155,60,.12)','rgba(255,215,44,.09)','rgba(44,90,255,.12)'];
 const PSYM=['☿','♀','⊕','♂','♃','♄','⛢','♆'];
 
@@ -210,7 +216,8 @@ ctrl.zoomSpeed=1.1; ctrl.rotateSpeed=.7;
 
 // ═══ LIGHTS
 scene.add(new THREE.PointLight(0xfff5e0,4,3000,0));
-scene.add(new THREE.AmbientLight(0x080818,.55));
+// Bug 3a fix: ambient was near-black (0x080818*0.55≈0); raise to proper dim ambient
+scene.add(new THREE.AmbientLight(0x1e2038,0.20));
 
 // ═══ HELPERS
 function gTex(r,g,b,sz=128){
@@ -239,7 +246,7 @@ function lo(d,a,b,c,e){if(d<a||d>e)return 0;if(d<b)return ss(a,b,d);if(d>c)retur
 function cv2t(fn,w=512,h=256){const cv=document.createElement('canvas');cv.width=w;cv.height=h;fn(cv.getContext('2d'),w,h);return new THREE.CanvasTexture(cv);}
 function eio(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
 
-// ═══ TEXTURES  (BUG 1 FIX: planets with maps get color 0xffffff)
+// ═══ TEXTURES
 const TEX={
   earth:cv2t((cx,w,h)=>{
     cx.fillStyle='#1a4b8c';cx.fillRect(0,0,w,h);
@@ -289,7 +296,7 @@ sG.add(sun);
 const SUNGL=[mkGlow(255,230,90,1.3),mkGlow(255,160,40,3.2),mkGlow(255,100,15,7.0),mkGlow(255,55,0,13)];
 SUNGL.forEach(g=>{sG.add(g);sM.push(g.material);});
 
-// ── Planets (BUG 1 FIX: color=white for textured planets)
+// ── Planets
 const TRAIL_N=mob?26:46;
 const pO=PD.map(pd=>{
   const mat=new THREE.MeshPhongMaterial({color:pd.c,specular:0x181818,shininess:pd.n==='Earth'?28:7,transparent:true});
@@ -310,11 +317,28 @@ const pO=PD.map(pd=>{
     const rm=new THREE.MeshBasicMaterial({map:TEX.rings,transparent:true,opacity:.82,side:THREE.DoubleSide,depthWrite:false});
     rMesh=new THREE.Mesh(rg,rm); rMesh.rotation.x=Math.PI/2.2; mesh.add(rMesh); sM.push(rm);
   }
-  // Atmosphere glow (using additive blending so never appears opaque)
+  // Atmosphere glow
   const atm={Earth:[80,155,255,2.2],Venus:[210,180,70,2.1],Mars:[200,100,55,1.9],Jupiter:[175,138,95,1.6],Uranus:[95,218,218,1.9],Neptune:[55,95,215,1.9]};
   const a=atm[pd.n]; if(a){const ag=mkGlow(a[0],a[1],a[2],pd.r*a[3]);ag.material.opacity=.45;mesh.add(ag);sM.push(ag.material);}
   return{pd,mesh,rMesh,tm,tpa};
 });
+
+// Bug 3b fix: constant-size dot layer so planets are always visible even when sub-pixel
+// One Points object, positions updated every frame, sizeAttenuation:false = always N pixels
+const pDotPos=new Float32Array(PD.length*3);
+const pDotCol=new Float32Array(PD.length*3);
+PD.forEach((pd,i)=>{
+  pDotCol[i*3]=((pd.c>>16)&0xff)/255;
+  pDotCol[i*3+1]=((pd.c>>8)&0xff)/255;
+  pDotCol[i*3+2]=(pd.c&0xff)/255;
+});
+const pDotGeo=new THREE.BufferGeometry();
+pDotGeo.setAttribute('position',new THREE.BufferAttribute(pDotPos,3));
+pDotGeo.setAttribute('color',new THREE.BufferAttribute(pDotCol,3));
+const pDotMat=new THREE.PointsMaterial({size:3,vertexColors:true,sizeAttenuation:false,transparent:true,depthWrite:false});
+const pDots=new THREE.Points(pDotGeo,pDotMat);
+sG.add(pDots);
+sM.push(pDotMat);
 
 // ── Moons
 const mO=MOONS.map(md=>{
@@ -342,7 +366,7 @@ const cTM=new THREE.LineBasicMaterial({color:0x99ccff,transparent:true,opacity:.
 const cDM=new THREE.LineBasicMaterial({color:0xffcc88,transparent:true,opacity:.28,blending:THREE.AdditiveBlending});
 sG.add(new THREE.Line(ctg,cTM)); sG.add(new THREE.Line(cdg,cDM));
 
-// ── Zodiac ring (FEATURE 5 — toggleable)
+// ── Zodiac ring (toggleable)
 const zodG=new THREE.Group(); sG.add(zodG); zodG.visible=false;
 const zodM=[];
 const zodRing=new THREE.Mesh(new THREE.RingGeometry(31,34.5,96,1),new THREE.MeshBasicMaterial({color:0x5fd0e6,transparent:true,opacity:.07,side:THREE.DoubleSide,depthWrite:false}));
@@ -353,7 +377,6 @@ for(let i=0;i<12;i++){
   const lm=new THREE.LineBasicMaterial({color:0x5fd0e6,transparent:true,opacity:.22});
   zodG.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lm)); zodM.push(lm);
 }
-// Helper objects for 3D→2D label projection
 const zodLO=ZS.map((_,i)=>{
   const a=i/12*Math.PI*2,obj=new THREE.Object3D();
   obj.position.set(36*Math.cos(a),0,36*Math.sin(a));
@@ -377,10 +400,10 @@ const iss=new THREE.Mesh(new THREE.SphereGeometry(.00025,4,4),new THREE.MeshBasi
 const moonDM=new THREE.MeshPhongMaterial({map:TEX.moon,color:0xffffff,shininess:3,transparent:true});
 const moonD=new THREE.Mesh(new THREE.SphereGeometry(.006,20,10),moonDM); edG.add(moonD); edM.push(moonDM);
 
-// ═══ GALAXY  (BUG 2/3 FIX: visible=false at init)
+// ═══ GALAXY  (visible=false at init)
 function gauss(){let u,v;do u=Math.random();while(!u);do v=Math.random();while(!v);return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
 const galG=new THREE.Group(); galG.position.set(-150,0,0); galG.rotation.x=.38;
-scene.add(galG); galG.visible=false; // ← FIX: explicit false
+scene.add(galG); galG.visible=false;
 const galM=[];
 (()=>{
   const N=mob?55000:90000,pos=new Float32Array(N*3),col=new Float32Array(N*3);
@@ -407,8 +430,8 @@ const youGl=mkGlow(95,208,230,25);youG.add(youGl);galM.push(youGl.material);
   galG.add(new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(pos,3)),m));galM.push(m);
 })();
 
-// ═══ OBSERVABLE UNIVERSE  (BUG 2 FIX: visible=false at init)
-const uniG=new THREE.Group(); scene.add(uniG); uniG.visible=false; // ← FIX
+// ═══ OBSERVABLE UNIVERSE  (visible=false at init)
+const uniG=new THREE.Group(); scene.add(uniG); uniG.visible=false;
 const uniM=[];
 (()=>{
   const CL=90,GA=mob?6000:9000,cl=[];
@@ -443,22 +466,15 @@ function resolveOvlp(items){
 let curLvl=1, zodOn=false;
 const lvBtns=document.querySelectorAll('.lvb');
 
-// BUG 2/3 FIX: non-overlapping thresholds — solar fades 55-88, galaxy starts 88
-// LEVEL_CAMS[3] moved out further for better universe view
 const CAM=[
   null,
   {p:new THREE.Vector3(0,7,16),      t:new THREE.Vector3(0,0,0)},
   {p:new THREE.Vector3(0,58,215),    t:new THREE.Vector3(-100,0,0)},
-  {p:new THREE.Vector3(0,12000,38000),t:new THREE.Vector3(0,0,0)}, // BUG 2 FIX: further out
+  {p:new THREE.Vector3(0,12000,38000),t:new THREE.Vector3(0,0,0)},
 ];
 
 function setLvl(l){
   if(l<=3)curLvl=l;
-  lvBtns.forEach((b,i)=>{
-    if(i===4)b.classList.toggle('on',zodOn);
-    else b.classList.toggle('on',i===l&&!zodOn||i===l);
-  });
-  // Just keep active on current
   lvBtns.forEach((b,i)=>b.classList.toggle('on',i===l||(i===4&&zodOn)));
 }
 
@@ -486,23 +502,41 @@ lvBtns.forEach((btn,i)=>btn.addEventListener('click',()=>{
 }));
 document.getElementById('zpclose').addEventListener('click',()=>{zodOn=false;zpanel.classList.remove('vis');lvBtns[4].classList.remove('on');});
 
-// ═══ TIME + DATE PICKER (BUG 4 FIX)
+// ═══ TIME + DATE PICKERS (Bug 2 + Bug 5 fix)
+// simDays is float — includes fractional day from time component
 let simDays=(Date.now()-J2000)/86400000, paused=false, speed=10;
 const spdEl=document.getElementById('spd'), spdLbl=document.getElementById('spd-lbl');
-const pbtn=document.getElementById('pbtn'), dateLbl=document.getElementById('date-disp');
+const pbtn=document.getElementById('pbtn');
 const dateIn=document.getElementById('date-in');
+const timeIn=document.getElementById('time-in');
+
+// Set default time to current local time
+(()=>{
+  const now=new Date();
+  const hh=String(now.getUTCHours()).padStart(2,'0');
+  const mm=String(now.getUTCMinutes()).padStart(2,'0');
+  timeIn.value=`${hh}:${mm}`;
+})();
 
 function fmtSpd(s){if(!s)return'PAUSED';if(s<1)return`${s.toFixed(2)} d/s`;if(s<1000)return`${Math.round(s)} d/s`;if(s<365250)return`${(s/365.25).toFixed(1)} yr/s`;return`${(s/365250).toFixed(0)}k yr/s`;}
 function onSpd(){const v=parseFloat(spdEl.value);speed=v?Math.pow(10,v-1):0;spdEl.style.background=`linear-gradient(to right,var(--c) ${v/6*100}%,rgba(95,208,230,.2) ${v/6*100}%)`;spdLbl.textContent=fmtSpd(speed);}
 spdEl.addEventListener('input',onSpd);onSpd();
 pbtn.addEventListener('click',()=>{paused=!paused;pbtn.textContent=paused?'▶ PLAY':'⏸ PAUSE';});
 
-// Sync date input ↔ simDays
-function syncDateIn(){const ms=J2000+simDays*86400000;dateIn.value=new Date(ms).toISOString().slice(0,10);}
-dateIn.addEventListener('change',()=>{
-  const d=new Date(dateIn.value);
+// Combine date + time → simDays (float, includes hour fraction)
+function applyDateTime(){
+  const dv=dateIn.value; if(!dv)return;
+  const tv=timeIn.value||'12:00';
+  const d=new Date(`${dv}T${tv}:00Z`);
   if(!isNaN(d.getTime()))simDays=(d.getTime()-J2000)/86400000;
-});
+}
+// Only sync date (not time-in) to avoid interfering with user-set birth time
+function syncDateIn(){
+  const d=new Date(J2000+simDays*86400000);
+  dateIn.value=d.toISOString().slice(0,10);
+}
+dateIn.addEventListener('change',applyDateTime);
+timeIn.addEventListener('change',applyDateTime);
 syncDateIn();
 
 // ═══ AUDIO
@@ -540,7 +574,6 @@ function onTap(cx,cy){
   document.getElementById('pp-moons').textContent=pd.mo;
   document.getElementById('pp-period').textContent=pd.per;
   document.getElementById('pp-dist').textContent=`${pd.a.toFixed(3)} AU`;
-  // FEATURE 6: zodiac position
   const lon=eclLon(o.mesh.position);
   document.getElementById('pp-zodiac').textContent=zodStr(lon);
   ppEl.style.display='block';
@@ -553,37 +586,31 @@ canvasEl.addEventListener('touchend',e=>{
   ltap=now;
 },{passive:true});
 
-// ═══ ZODIAC CHART 2D (FEATURE 7)
+// ═══ ZODIAC CHART 2D
 const zcCanvas=document.getElementById('zc');
 const zctx=zcCanvas.getContext('2d');
 const ZW=zcCanvas.width,ZH=zcCanvas.height,ZCX=ZW/2,ZCY=ZH/2,ZR=ZW/2-6;
 function drawZChart(){
   zctx.clearRect(0,0,ZW,ZH);
   zctx.fillStyle='#05080d';zctx.fillRect(0,0,ZW,ZH);
-  // Sectors
   for(let i=0;i<12;i++){
     const a0=-(i/12)*Math.PI*2,a1=-((i+1)/12)*Math.PI*2;
     zctx.beginPath();zctx.moveTo(ZCX,ZCY);zctx.arc(ZCX,ZCY,ZR*.93,a0,a1,true);zctx.closePath();
     zctx.fillStyle=ZEC[ZE[i]];zctx.fill();
     zctx.strokeStyle='rgba(95,208,230,.18)';zctx.lineWidth=.8;zctx.stroke();
-    // Division line
     zctx.beginPath();zctx.moveTo(ZCX+Math.cos(a0)*ZR*.52,ZCY+Math.sin(a0)*ZR*.52);zctx.lineTo(ZCX+Math.cos(a0)*ZR*.93,ZCY+Math.sin(a0)*ZR*.93);
     zctx.strokeStyle='rgba(95,208,230,.25)';zctx.lineWidth=.8;zctx.stroke();
-    // Symbol
     const am=-(i+.5)/12*Math.PI*2;
     zctx.fillStyle='rgba(95,208,230,.82)';zctx.font='bold 13px Courier New';zctx.textAlign='center';zctx.textBaseline='middle';
     zctx.fillText(ZS[i],ZCX+Math.cos(am)*ZR*.71,ZCY+Math.sin(am)*ZR*.71);
     zctx.fillStyle='rgba(95,208,230,.38)';zctx.font='6px Courier New';
     zctx.fillText(ZN[i].slice(0,3).toUpperCase(),ZCX+Math.cos(am)*ZR*.85,ZCY+Math.sin(am)*ZR*.85);
   }
-  // Rings
   zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.93,0,Math.PI*2);zctx.strokeStyle='rgba(95,208,230,.3)';zctx.lineWidth=1;zctx.stroke();
   zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.52,0,Math.PI*2);zctx.strokeStyle='rgba(95,208,230,.14)';zctx.stroke();
-  // Sun center
   zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.11,0,Math.PI*2);
   zctx.fillStyle='rgba(255,210,60,.18)';zctx.fill();zctx.strokeStyle='rgba(255,180,84,.45)';zctx.lineWidth=1;zctx.stroke();
   zctx.fillStyle='rgba(255,230,80,.9)';zctx.font='13px serif';zctx.textAlign='center';zctx.textBaseline='middle';zctx.fillText('☉',ZCX,ZCY);
-  // Planet + Moon + Sun dots
   const earthLon=eclLon(pO[2].mesh.position);
   const sunLon=(earthLon+180)%360;
   const bodies=[
@@ -594,16 +621,12 @@ function drawZChart(){
   bodies.forEach(({lon,sym,c})=>{
     const ang=-(lon*Math.PI/180);
     const px=ZCX+Math.cos(ang)*ZR*.62, py=ZCY+Math.sin(ang)*ZR*.62;
-    // Radial tick
     zctx.beginPath();zctx.moveTo(ZCX+Math.cos(ang)*ZR*.52,ZCY+Math.sin(ang)*ZR*.52);zctx.lineTo(ZCX+Math.cos(ang)*ZR*.93,ZCY+Math.sin(ang)*ZR*.93);
     zctx.strokeStyle=c+'55';zctx.lineWidth=.5;zctx.stroke();
-    // Dot
     zctx.beginPath();zctx.arc(px,py,5,0,Math.PI*2);zctx.fillStyle=c;zctx.fill();
     zctx.fillStyle='rgba(5,8,13,.8)';zctx.font='bold 6px sans-serif';zctx.textAlign='center';zctx.textBaseline='middle';zctx.fillText(sym,px,py);
   });
-  // Update header date
   document.getElementById('zdate').textContent=new Date(J2000+simDays*86400000).toISOString().slice(0,10);
-  // Legend
   const earthSign=zodStr(earthLon);const sunSign=zodStr(sunLon);
   document.getElementById('zlegend').textContent=`☉ Sun: ${sunSign.trim()}   ⊕ Earth: ${earthSign.trim()}`;
 }
@@ -630,12 +653,8 @@ function loop(){
   if(hidden)return;
   const now=performance.now(),dt=Math.min((now-lastT)/1000,.1);lastT=now;fn++;
 
-  // Time
   if(!paused)simDays+=speed*dt;
-  if(fn%45===0){
-    dateLbl.textContent=new Date(J2000+simDays*86400000).toISOString().slice(0,10);
-    syncDateIn();
-  }
+  if(fn%45===0)syncDateIn();
 
   // Fly-to
   if(fly){
@@ -652,7 +671,12 @@ function loop(){
     mesh.position.copy(pPos(pd,simDays));
     mesh.rotation.y+=dt*(pd.n==='Jupiter'?.55:pd.n==='Earth'?.42:.27);
     if(fn%4===0){for(let j=0;j<TRAIL_N;j++){const p=pPos(pd,simDays-pd.T*.28*(1-j/(TRAIL_N-1)));tpa.array[j*3]=p.x;tpa.array[j*3+1]=p.y;tpa.array[j*3+2]=p.z;}tpa.needsUpdate=true;}
+    // Bug 3b fix: update dot positions (constant-size pixels at any distance)
+    pDotPos[i*3]=mesh.position.x;
+    pDotPos[i*3+1]=mesh.position.y;
+    pDotPos[i*3+2]=mesh.position.z;
   }
+  pDotGeo.attributes.position.needsUpdate=true;
 
   // Moons
   for(const{md,mesh}of mO){
@@ -668,9 +692,7 @@ function loop(){
   for(let i=0;i<28;i++){const f=i/27;cDP.array[i*3]=cp.x+dD.x*f*ctL*.65;cDP.array[i*3+1]=cp.y+dD.y*f*ctL*.65;cDP.array[i*3+2]=cp.z+dD.z*f*ctL*.65;}
   cTP.needsUpdate=true;cDP.needsUpdate=true;
 
-  // BUG 2/3 FIX: non-overlapping thresholds
-  // Solar: full 0-55 AU, fades 55-88 AU
-  // Galaxy: fades in 88-125 AU (no overlap with solar!)
+  // Non-overlapping thresholds
   const sOp=lo(cd,0,2,55,88), gOp=lo(cd,88,125,2200,4500), uOp=lo(cd,2800,5000,9e9,9e9);
 
   for(const m of sM)m.opacity=sOp;
@@ -680,7 +702,6 @@ function loop(){
   galG.visible=gOp>.004;
   uniG.visible=uOp>.004;
 
-  // Trail opacity (slightly stronger than base solar)
   for(const{tm}of pO)tm.opacity=Math.min(sOp*.5,.46);
   cometComa.material.opacity=sOp*.78;
   cTM.opacity=Math.min(sOp*.62,.56);
@@ -688,9 +709,8 @@ function loop(){
 
   // Zodiac ring
   zodG.visible=zodOn&&sOp>.05;
-  if(zodG.visible){for(const m of zodM)m.opacity=sOp*(.12+Math.random()*.0);}
+  if(zodG.visible){for(const m of zodM)m.opacity=sOp*.12;}
 
-  // Background tint
   if(uOp>0)scene.background=new THREE.Color(0x05080d).lerp(new THREE.Color(0x060410),uOp*.7);
   else scene.background=new THREE.Color(0x05080d);
 
@@ -715,14 +735,14 @@ function loop(){
   SUNGL[3].scale.set(13*(1+Math.sin(T*.18)*.03),13*(1+Math.sin(T*.18)*.03),1);
   sun.rotation.y+=dt*.18;
 
-  // Level detection (BUG 2 FIX: updated thresholds match new sOp/gOp)
+  // Level detection
   if(!fly){
     let lv;if(de<.15&&cd<3)lv=0;else if(cd<88)lv=1;else if(cd<2800)lv=2;else lv=3;
     if(lv!==curLvl&&!zodOn)setLvl(lv);
     else if(!zodOn)lvBtns.forEach((b,i)=>b.classList.toggle('on',i===lv));
   }
 
-  // Planet labels with overlap resolution
+  // Planet labels
   const lOp=Math.min(sOp,1-Math.max(0,(cd-25)/38));
   const lItems=[];
   for(let i=0;i<pO.length;i++){
@@ -742,8 +762,10 @@ function loop(){
     });
   }else zodLbl.forEach(l=>l.style.opacity='0');
 
-  // Galaxy labels
-  const gl=gOp>.25?gOp:0;galLbl.style.opacity=gl;youLbl.style.opacity=gl;
+  // Bug 4 fix: Galaxy + YOU ARE HERE labels only visible when curLvl >= 2 (galaxy/universe)
+  const showGalLabels=gOp>.25&&curLvl>=2;
+  const gl=showGalLabels?gOp:0;
+  galLbl.style.opacity=gl;youLbl.style.opacity=gl;
   if(gl>.01){
     const gc=new THREE.Vector3(-150,0,0).project(cam);
     setL(galLbl,(gc.x+1)/2*innerWidth,(-gc.y+1)/2*innerHeight-32,gl);
@@ -752,8 +774,6 @@ function loop(){
   uniLbl.style.opacity=uOp;if(uOp>.01)setL(uniLbl,innerWidth/2,72,uOp);
 
   if(fn%10===0)updScl(cd);
-
-  // Zodiac chart redraw
   if(zodOn)drawZChart();
 
   ctrl.update();
@@ -761,10 +781,21 @@ function loop(){
 }
 loop();
 
-window.addEventListener('resize',()=>{
-  cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
-});
+// Bug 1 fix: robust resize — also handles iOS visualViewport changes
+function onResize(){
+  const W=window.innerWidth,H=window.innerHeight;
+  cam.aspect=W/H;cam.updateProjectionMatrix();
+  renderer.setSize(W,H);
+}
+window.addEventListener('resize',onResize);
+// iOS Safari: toolbar show/hide fires visualViewport resize, not window resize
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{
+    const W=window.visualViewport.width,H=window.visualViewport.height;
+    cam.aspect=W/H;cam.updateProjectionMatrix();
+    renderer.setSize(W,H);
+  });
+}
 </script>
 </body>
 </html>
