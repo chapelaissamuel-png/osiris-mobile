@@ -36,12 +36,14 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
 .sep{color:rgba(95,208,230,.2)}
 .cbtn{background:none;border:1px solid rgba(95,208,230,.27);color:var(--c);padding:3px 8px;cursor:pointer;font:7px/1 var(--f);letter-spacing:.07em;transition:background .18s}
 .cbtn:hover{background:rgba(95,208,230,.06)}
-/* Bug 2 fix: proper width + padding-right so calendar icon doesn't overlap text */
-#date-in,#time-in{background:rgba(5,8,13,.6);border:1px solid rgba(95,208,230,.22);color:var(--c);font:7px/1 var(--f);letter-spacing:.07em;padding:3px 6px;cursor:pointer;color-scheme:dark;min-height:22px}
-#date-in{width:130px;min-width:130px;padding-right:6px}
-#time-in{width:82px;min-width:72px}
+/* Date/time inputs — wide enough + room for picker icon */
+#date-in,#time-in,#tz-off{background:rgba(5,8,13,.6);border:1px solid rgba(95,208,230,.22);color:var(--c);font:10px/1 var(--f);letter-spacing:.05em;padding:3px 5px;cursor:pointer;color-scheme:dark;min-height:22px}
+#date-in{width:145px;min-width:130px;padding-right:28px}
+#time-in{width:78px;min-width:70px;padding-right:24px}
+#tz-off{width:52px;text-align:center;-moz-appearance:textfield}
+#tz-off::-webkit-outer-spin-button,#tz-off::-webkit-inner-spin-button{-webkit-appearance:none}
 #date-in::-webkit-calendar-picker-indicator,
-#time-in::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer;filter:invert(1) sepia(1) saturate(3) hue-rotate(150deg);margin-left:2px}
+#time-in::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer;filter:invert(1) sepia(1) saturate(3) hue-rotate(150deg)}
 #snd{border-color:rgba(255,180,84,.28);color:rgba(255,180,84,.55)}
 #snd.on{border-color:var(--g);color:var(--g);box-shadow:0 0 6px rgba(255,180,84,.14)}
 
@@ -58,13 +60,22 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
 #ppc{position:absolute;top:7px;right:9px;cursor:pointer;color:var(--g);font-size:13px;background:none;border:none}
 
 /* ── ZODIAC PANEL ── */
-#zpanel{position:fixed;right:14px;top:50%;transform:translateY(-50%);background:var(--gl);border:1px solid var(--g);padding:12px 14px;z-index:25;display:none;min-width:286px}
+#zpanel{position:fixed;right:14px;top:50%;transform:translateY(-50%);background:var(--gl);border:1px solid var(--g);padding:12px 14px;z-index:25;display:none;min-width:300px;max-height:calc(100dvh - 110px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,180,84,.2) transparent}
+#zpanel::-webkit-scrollbar{width:3px}
+#zpanel::-webkit-scrollbar-thumb{background:rgba(255,180,84,.25);border-radius:2px}
 #zpanel.vis{display:block}
-@media(max-width:580px){#zpanel{right:4px;left:4px;top:auto;bottom:70px;transform:none;min-width:0}}
+@media(max-width:580px){#zpanel{right:4px;left:4px;top:auto;bottom:70px;transform:none;min-width:0;max-height:calc(100dvh - 160px)}}
 #zpanel h4{color:var(--g);font:bold 8px/1 var(--f);letter-spacing:.35em;text-align:center;margin-bottom:8px;text-transform:uppercase}
 #zdate{color:rgba(95,208,230,.7)}
 #zc{display:block;margin:0 auto}
-#zlegend{margin-top:7px;font:6px/1.8 var(--f);letter-spacing:.08em;color:rgba(255,255,255,.35);text-align:center;white-space:nowrap}
+/* Full legend grid */
+#zlegend{margin-top:9px;display:grid;grid-template-columns:14px 1fr auto;gap:0 6px;align-items:center;font:7px/2 var(--f);letter-spacing:.06em}
+.zl-sym{font-size:11px;text-align:center;line-height:1.6}
+.zl-name{color:rgba(255,255,255,.35);letter-spacing:.08em;font-size:6.5px}
+.zl-sign{color:var(--c);text-align:right;font-size:6.5px;letter-spacing:.04em}
+.zl-sign.fire{color:#ff7a44}.zl-sign.earth{color:#66cc66}.zl-sign.air{color:#ffdd55}.zl-sign.water{color:#6699ff}
+.zl-sign.sun-c{color:#ffdd22;font-weight:bold}.zl-sign.moon-c{color:#cccccc}
+.zleg-div{grid-column:1/-1;height:1px;background:rgba(95,208,230,.07);margin:2px 0}
 #zpclose{position:absolute;top:7px;right:9px;cursor:pointer;color:var(--g);font-size:13px;background:none;border:none}
 
 /* ── LABELS ── */
@@ -114,7 +125,6 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
   </div>
 </div>
 
-<!-- Bug 2 fix: removed duplicate date-disp span; added time-in -->
 <div id="ctrl">
   <span class="cl">TIME</span>
   <input type="range" id="spd" min="0" max="6" step="0.02" value="2.0"/>
@@ -123,6 +133,8 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
   <button class="cbtn" id="pbtn">⏸ PAUSE</button>
   <input type="date" id="date-in"/>
   <input type="time" id="time-in"/>
+  <span class="cl" title="UTC offset for birth timezone">UTC</span>
+  <input type="number" id="tz-off" min="-12" max="14" step="0.5" value="0" title="UTC offset (e.g. +2 for Paris summer)"/>
   <span class="sep">|</span>
   <button class="cbtn" id="snd">♪ SOUND</button>
 </div>
@@ -142,7 +154,7 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
 <div id="zpanel">
   <button id="zpclose">✕</button>
   <h4>THÈME ASTRAL — <span id="zdate"></span></h4>
-  <canvas id="zc" width="258" height="258"></canvas>
+  <canvas id="zc" width="280" height="280"></canvas>
   <div id="zlegend"></div>
 </div>
 
@@ -194,6 +206,21 @@ const PSYM=['☿','♀','⊕','♂','♃','♄','⛢','♆'];
 
 function eclLon(pos){return((Math.atan2(pos.z,pos.x)*180/Math.PI)+360)%360;}
 function zodStr(lon){const i=Math.floor(lon/30)%12;return`${ZS[i]} ${ZN[i]}  ${(lon%30).toFixed(1)}°`;}
+
+// ── Accurate Sun ecliptic longitude (VSOP87-simplified, ~0.01° precision)
+// Includes equation of center, aberration, and nutation Ω term
+function sunLonAccurate(days){
+  const T=days/36525;
+  const L0=((280.46646+36000.76983*T)%360+360)%360;
+  const M=((357.52911+35999.05029*T-0.0001537*T*T)%360+360)%360;
+  const Mr=M*D;
+  const C=(1.914602-0.004817*T-0.000014*T*T)*Math.sin(Mr)
+         +(0.019993-0.000101*T)*Math.sin(2*Mr)
+         +0.000289*Math.sin(3*Mr);
+  const sunTrue=L0+C;
+  const omega=((125.04-1934.136*T)%360+360)%360*D;
+  return((sunTrue-0.00569-0.00478*Math.sin(omega))%360+360)%360;
+}
 
 // ═══ RENDERER
 const canvasEl=document.getElementById('c');
@@ -509,13 +536,17 @@ const spdEl=document.getElementById('spd'), spdLbl=document.getElementById('spd-
 const pbtn=document.getElementById('pbtn');
 const dateIn=document.getElementById('date-in');
 const timeIn=document.getElementById('time-in');
+const tzOff=document.getElementById('tz-off');
 
-// Set default time to current local time
+// Default time = current local time; default TZ offset = browser's UTC offset
 (()=>{
   const now=new Date();
   const hh=String(now.getUTCHours()).padStart(2,'0');
   const mm=String(now.getUTCMinutes()).padStart(2,'0');
   timeIn.value=`${hh}:${mm}`;
+  // Pre-fill UTC offset from browser
+  const off=-(now.getTimezoneOffset()/60);
+  tzOff.value=Number.isFinite(off)?off:0;
 })();
 
 function fmtSpd(s){if(!s)return'PAUSED';if(s<1)return`${s.toFixed(2)} d/s`;if(s<1000)return`${Math.round(s)} d/s`;if(s<365250)return`${(s/365.25).toFixed(1)} yr/s`;return`${(s/365250).toFixed(0)}k yr/s`;}
@@ -523,20 +554,23 @@ function onSpd(){const v=parseFloat(spdEl.value);speed=v?Math.pow(10,v-1):0;spdE
 spdEl.addEventListener('input',onSpd);onSpd();
 pbtn.addEventListener('click',()=>{paused=!paused;pbtn.textContent=paused?'▶ PLAY':'⏸ PAUSE';});
 
-// Combine date + time → simDays (float, includes hour fraction)
+// date + time + UTC offset → simDays (float). Time is local; subtract offset to get UTC.
 function applyDateTime(){
   const dv=dateIn.value; if(!dv)return;
   const tv=timeIn.value||'12:00';
-  const d=new Date(`${dv}T${tv}:00Z`);
-  if(!isNaN(d.getTime()))simDays=(d.getTime()-J2000)/86400000;
+  const off=parseFloat(tzOff.value)||0;
+  // Parse as UTC-literal then subtract offset hours to convert local→UTC
+  const localMs=new Date(`${dv}T${tv}:00Z`).getTime();
+  const utcMs=localMs-off*3600000;
+  if(!isNaN(utcMs))simDays=(utcMs-J2000)/86400000;
 }
-// Only sync date (not time-in) to avoid interfering with user-set birth time
 function syncDateIn(){
   const d=new Date(J2000+simDays*86400000);
   dateIn.value=d.toISOString().slice(0,10);
 }
 dateIn.addEventListener('change',applyDateTime);
 timeIn.addEventListener('change',applyDateTime);
+tzOff.addEventListener('change',applyDateTime);
 syncDateIn();
 
 // ═══ AUDIO
@@ -589,46 +623,114 @@ canvasEl.addEventListener('touchend',e=>{
 // ═══ ZODIAC CHART 2D
 const zcCanvas=document.getElementById('zc');
 const zctx=zcCanvas.getContext('2d');
-const ZW=zcCanvas.width,ZH=zcCanvas.height,ZCX=ZW/2,ZCY=ZH/2,ZR=ZW/2-6;
+const ZW=zcCanvas.width,ZH=zcCanvas.height,ZCX=ZW/2,ZCY=ZH/2,ZR=ZW/2-7;
+// Element color classes for HTML legend
+const ZEL_CLS=['fire','earth','air','water'];
+// Brighter element fill colors for sector backgrounds
+const ZEC2=['rgba(255,80,30,.16)','rgba(50,170,65,.15)','rgba(255,220,50,.11)','rgba(50,100,255,.15)'];
+// Inner track radii for planet dots — stagger to avoid overlap
+const BODY_TRACKS=[.72,.65,.58,.72,.65,.58,.72,.65,.72,.65]; // 8 planets + Moon + Sun
+
 function drawZChart(){
   zctx.clearRect(0,0,ZW,ZH);
   zctx.fillStyle='#05080d';zctx.fillRect(0,0,ZW,ZH);
+
+  // ── 1. Sector fills + dividers
   for(let i=0;i<12;i++){
-    const a0=-(i/12)*Math.PI*2,a1=-((i+1)/12)*Math.PI*2;
-    zctx.beginPath();zctx.moveTo(ZCX,ZCY);zctx.arc(ZCX,ZCY,ZR*.93,a0,a1,true);zctx.closePath();
-    zctx.fillStyle=ZEC[ZE[i]];zctx.fill();
-    zctx.strokeStyle='rgba(95,208,230,.18)';zctx.lineWidth=.8;zctx.stroke();
-    zctx.beginPath();zctx.moveTo(ZCX+Math.cos(a0)*ZR*.52,ZCY+Math.sin(a0)*ZR*.52);zctx.lineTo(ZCX+Math.cos(a0)*ZR*.93,ZCY+Math.sin(a0)*ZR*.93);
-    zctx.strokeStyle='rgba(95,208,230,.25)';zctx.lineWidth=.8;zctx.stroke();
-    const am=-(i+.5)/12*Math.PI*2;
-    zctx.fillStyle='rgba(95,208,230,.82)';zctx.font='bold 13px Courier New';zctx.textAlign='center';zctx.textBaseline='middle';
-    zctx.fillText(ZS[i],ZCX+Math.cos(am)*ZR*.71,ZCY+Math.sin(am)*ZR*.71);
-    zctx.fillStyle='rgba(95,208,230,.38)';zctx.font='6px Courier New';
-    zctx.fillText(ZN[i].slice(0,3).toUpperCase(),ZCX+Math.cos(am)*ZR*.85,ZCY+Math.sin(am)*ZR*.85);
+    const a0=-(i/12)*Math.PI*2, a1=-((i+1)/12)*Math.PI*2;
+    zctx.beginPath();zctx.moveTo(ZCX,ZCY);zctx.arc(ZCX,ZCY,ZR*.95,a0,a1,true);zctx.closePath();
+    zctx.fillStyle=ZEC2[ZE[i]];zctx.fill();
+    // Divider line
+    zctx.beginPath();zctx.moveTo(ZCX+Math.cos(a0)*ZR*.50,ZCY+Math.sin(a0)*ZR*.50);
+    zctx.lineTo(ZCX+Math.cos(a0)*ZR*.95,ZCY+Math.sin(a0)*ZR*.95);
+    zctx.strokeStyle='rgba(95,208,230,.3)';zctx.lineWidth=.9;zctx.stroke();
   }
-  zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.93,0,Math.PI*2);zctx.strokeStyle='rgba(95,208,230,.3)';zctx.lineWidth=1;zctx.stroke();
-  zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.52,0,Math.PI*2);zctx.strokeStyle='rgba(95,208,230,.14)';zctx.stroke();
-  zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.11,0,Math.PI*2);
-  zctx.fillStyle='rgba(255,210,60,.18)';zctx.fill();zctx.strokeStyle='rgba(255,180,84,.45)';zctx.lineWidth=1;zctx.stroke();
-  zctx.fillStyle='rgba(255,230,80,.9)';zctx.font='13px serif';zctx.textAlign='center';zctx.textBaseline='middle';zctx.fillText('☉',ZCX,ZCY);
+
+  // ── 2. Outer + inner ring strokes
+  zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.95,0,Math.PI*2);zctx.strokeStyle='rgba(95,208,230,.35)';zctx.lineWidth=1;zctx.stroke();
+  zctx.beginPath();zctx.arc(ZCX,ZCY,ZR*.50,0,Math.PI*2);zctx.strokeStyle='rgba(95,208,230,.18)';zctx.lineWidth=.8;zctx.stroke();
+
+  // ── 3. Zodiac symbols — dark halo circle + larger glyph
+  for(let i=0;i<12;i++){
+    const am=-(i+.5)/12*Math.PI*2;
+    const sx=ZCX+Math.cos(am)*ZR*.724, sy=ZCY+Math.sin(am)*ZR*.724;
+    // Dark circle background for contrast
+    zctx.beginPath();zctx.arc(sx,sy,10,0,Math.PI*2);
+    zctx.fillStyle='rgba(5,8,13,.82)';zctx.fill();
+    zctx.strokeStyle='rgba(95,208,230,.22)';zctx.lineWidth=.8;zctx.stroke();
+    // Large symbol
+    zctx.fillStyle='rgba(200,240,255,.95)';zctx.font='bold 17px serif';
+    zctx.textAlign='center';zctx.textBaseline='middle';
+    zctx.fillText(ZS[i],sx,sy+1);
+    // Abbreviated name on outer band
+    const nx=ZCX+Math.cos(am)*ZR*.875, ny=ZCY+Math.sin(am)*ZR*.875;
+    zctx.fillStyle='rgba(95,208,230,.52)';zctx.font='bold 6px Courier New';
+    zctx.fillText(ZN[i].slice(0,3).toUpperCase(),nx,ny);
+  }
+
+  // ── 4. Compute all body longitudes
+  // Sun: use accurate VSOP87-simplified formula
+  const sunLon=sunLonAccurate(simDays);
   const earthLon=eclLon(pO[2].mesh.position);
-  const sunLon=(earthLon+180)%360;
-  const bodies=[
-    ...pO.map((o,i)=>({lon:eclLon(o.mesh.position),sym:PSYM[i],c:'#'+o.pd.c.toString(16).padStart(6,'0')})),
-    {lon:eclLon(mO[0].mesh.position),sym:'☽',c:'#aaaaaa'},
-    {lon:sunLon,sym:'☉',c:'#ffdd22'},
+  const moonLon=eclLon(mO[0].mesh.position);
+  const allBodies=[
+    ...pO.map((o,pi)=>({lon:eclLon(o.mesh.position),sym:PSYM[pi],c:'#'+o.pd.c.toString(16).padStart(6,'0'),name:o.pd.n,key:pi})),
+    {lon:moonLon,sym:'☽',c:'#cccccc',name:'Moon',key:8},
+    {lon:sunLon,sym:'☉',c:'#ffdd22',name:'Sun',key:9},
   ];
-  bodies.forEach(({lon,sym,c})=>{
+
+  // ── 5. Planet/body dots on wheel — staggered tracks to avoid overlap
+  const tracks=[.66,.60,.54,.66,.60,.54,.66,.60,.66,.58];
+  allBodies.forEach(({lon,sym,c,key})=>{
     const ang=-(lon*Math.PI/180);
-    const px=ZCX+Math.cos(ang)*ZR*.62, py=ZCY+Math.sin(ang)*ZR*.62;
-    zctx.beginPath();zctx.moveTo(ZCX+Math.cos(ang)*ZR*.52,ZCY+Math.sin(ang)*ZR*.52);zctx.lineTo(ZCX+Math.cos(ang)*ZR*.93,ZCY+Math.sin(ang)*ZR*.93);
-    zctx.strokeStyle=c+'55';zctx.lineWidth=.5;zctx.stroke();
-    zctx.beginPath();zctx.arc(px,py,5,0,Math.PI*2);zctx.fillStyle=c;zctx.fill();
-    zctx.fillStyle='rgba(5,8,13,.8)';zctx.font='bold 6px sans-serif';zctx.textAlign='center';zctx.textBaseline='middle';zctx.fillText(sym,px,py);
+    const tr=ZR*(tracks[key]??0.62);
+    const px=ZCX+Math.cos(ang)*tr, py=ZCY+Math.sin(ang)*tr;
+    // Radial tick from inner ring to dot
+    zctx.beginPath();
+    zctx.moveTo(ZCX+Math.cos(ang)*ZR*.50,ZCY+Math.sin(ang)*ZR*.50);
+    zctx.lineTo(px,py);
+    zctx.strokeStyle=c+'66';zctx.lineWidth=.7;zctx.stroke();
+    // Dot halo
+    zctx.beginPath();zctx.arc(px,py,7,0,Math.PI*2);
+    zctx.fillStyle='rgba(5,8,13,.85)';zctx.fill();
+    zctx.strokeStyle=c;zctx.lineWidth=1.1;zctx.stroke();
+    // Symbol
+    zctx.fillStyle=c;zctx.font='bold 8px serif';
+    zctx.textAlign='center';zctx.textBaseline='middle';
+    zctx.fillText(sym,px,py+.5);
   });
-  document.getElementById('zdate').textContent=new Date(J2000+simDays*86400000).toISOString().slice(0,10);
-  const earthSign=zodStr(earthLon);const sunSign=zodStr(sunLon);
-  document.getElementById('zlegend').textContent=`☉ Sun: ${sunSign.trim()}   ⊕ Earth: ${earthSign.trim()}`;
+
+  // ── 6. Sun center glow
+  const rSun=ZR*.16;
+  const grd=zctx.createRadialGradient(ZCX,ZCY,0,ZCX,ZCY,rSun);
+  grd.addColorStop(0,'rgba(255,230,80,.6)');grd.addColorStop(.5,'rgba(255,180,40,.18)');grd.addColorStop(1,'rgba(255,100,0,0)');
+  zctx.beginPath();zctx.arc(ZCX,ZCY,rSun,0,Math.PI*2);zctx.fillStyle=grd;zctx.fill();
+  zctx.beginPath();zctx.arc(ZCX,ZCY,rSun*.45,0,Math.PI*2);
+  zctx.fillStyle='rgba(255,210,60,.22)';zctx.fill();
+  zctx.strokeStyle='rgba(255,180,84,.5)';zctx.lineWidth=1;zctx.stroke();
+  zctx.fillStyle='rgba(255,235,90,1)';zctx.font='bold 14px serif';
+  zctx.textAlign='center';zctx.textBaseline='middle';zctx.fillText('☉',ZCX,ZCY+1);
+
+  // ── 7. Update header date + UTC offset label
+  const off=parseFloat(tzOff.value)||0;
+  const offStr=off===0?'UTC':(off>0?`UTC+${off}`:`UTC${off}`);
+  document.getElementById('zdate').textContent=
+    `${new Date(J2000+simDays*86400000).toISOString().slice(0,10)} ${offStr}`;
+
+  // ── 8. Full HTML legend — all bodies with element color + sign + degree
+  const elCls=['fire','earth','air','water'];
+  let html='';
+  allBodies.forEach(({lon,sym,c,name,key})=>{
+    const si=Math.floor(lon/30)%12;
+    const el=elCls[ZE[si]];
+    const extraCls=(name==='Sun'?'sun-c':name==='Moon'?'moon-c':el);
+    const deg=(lon%30).toFixed(1);
+    html+=`<span class="zl-sym" style="color:${c}">${sym}</span>`
+         +`<span class="zl-name">${name.toUpperCase()}</span>`
+         +`<span class="zl-sign ${extraCls}">${ZS[si]} ${ZN[si]} ${deg}°</span>`;
+    if(key<9)html+=`<div class="zleg-div"></div>`;
+  });
+  document.getElementById('zlegend').innerHTML=html;
 }
 
 // ═══ LABEL HELPERS
@@ -762,8 +864,8 @@ function loop(){
     });
   }else zodLbl.forEach(l=>l.style.opacity='0');
 
-  // Bug 4 fix: Galaxy + YOU ARE HERE labels only visible when curLvl >= 2 (galaxy/universe)
-  const showGalLabels=gOp>.25&&curLvl>=2;
+  // YOU ARE HERE / Galaxy labels: only show when galG is actually visible (cd>88 AU)
+  const showGalLabels=galG.visible&&gOp>.25;
   const gl=showGalLabels?gOp:0;
   galLbl.style.opacity=gl;youLbl.style.opacity=gl;
   if(gl>.01){
