@@ -70,7 +70,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     ctx.lineTo(cx + size * 0.12, cy + size * 0.1);
     ctx.closePath();
     ctx.fill();
-    map.addImage(id, { width: size, height: size, data: new Uint8Array(ctx.getImageData(0, 0, size, size).data) });
+    map.addImage(id, ctx.getImageData(0, 0, size, size));
   }, []);
 
   const createDot = useCallback((map: maplibregl.Map, id: string, color: string, size: number) => {
@@ -82,7 +82,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     ctx.beginPath();
     ctx.arc(size/2, size/2, size/2 - 1, 0, Math.PI * 2);
     ctx.fill();
-    map.addImage(id, { width: size, height: size, data: new Uint8Array(ctx.getImageData(0, 0, size, size).data) });
+    map.addImage(id, ctx.getImageData(0, 0, size, size));
   }, []);
 
   useEffect(() => {
@@ -155,7 +155,11 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       try {
       mapRef.current = map;
       // Create misc icons
-      createIcon(map, 'plane-grey', '#546E7A', 24);    // Unknown — blue-grey (kept for fallback)
+      createIcon(map, 'plane-cyan',  '#64B5F6', 24);   // Commercial — steel blue
+      createIcon(map, 'plane-silver','#B0BEC5', 24);   // Private    — silver
+      createIcon(map, 'plane-violet','#CE93D8', 24);   // Jets       — violet
+      createIcon(map, 'plane-red',   '#EF5350', 24);   // Military   — crimson
+      createIcon(map, 'plane-grey',  '#546E7A', 24);   // Fallback   — blue-grey
       createDot(map, 'dot-gold', '#D4AF37', 8);
       createDot(map, 'dot-red', '#D32F2F', 10);
       createDot(map, 'dot-orange', '#E65100', 10);
@@ -183,7 +187,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('!', s/2, s - 4);
-        map.addImage(id, { width: s, height: s, data: new Uint8Array(ctx.getImageData(0, 0, s, s).data) });
+        map.addImage(id, ctx.getImageData(0, 0, s, s));
       };
       createWarningIcon('warn-icon', '#D32F2F');
       createWarningIcon('warn-orange', '#E65100');
@@ -468,22 +472,22 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'text-offset': [0, 2], 'text-max-width': 14, 'text-allow-overlap': false,
       }, paint: { 'text-color': '#D32F2F', 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9 }});
 
-      // Flight layers — circle type (no font/sprite dependency, guaranteed render)
+      // Flight layers — symbol + icon-rotate for heading indication
       const flightLayers = [
-        { id: 'fl-commercial', src: 'flights',    color: '#64B5F6', stroke: '#1565C0' },  // steel blue  — commercial
-        { id: 'fl-private',    src: 'private-fl', color: '#CFD8DC', stroke: '#546E7A' },  // silver      — private
-        { id: 'fl-jets',       src: 'jets',       color: '#CE93D8', stroke: '#7B1FA2' },  // violet      — private jets
-        { id: 'fl-military',   src: 'military',   color: '#EF5350', stroke: '#B71C1C' },  // crimson     — military
+        { id: 'fl-commercial', src: 'flights',    icon: 'plane-cyan'   },
+        { id: 'fl-private',    src: 'private-fl', icon: 'plane-silver' },
+        { id: 'fl-jets',       src: 'jets',       icon: 'plane-violet' },
+        { id: 'fl-military',   src: 'military',   icon: 'plane-red'    },
       ];
       flightLayers.forEach(l => {
-        map.addLayer({ id: l.id, type: 'circle', source: l.src, paint: {
-          'circle-radius': ['interpolate',['linear'],['zoom'], 1,2, 4,3, 7,4, 10,6],
-          'circle-color': l.color,
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 0.8,
-          'circle-stroke-color': l.stroke,
-          'circle-stroke-opacity': 0.7,
-        }});
+        map.addLayer({ id: l.id, type: 'symbol', source: l.src, layout: {
+          'icon-image': l.icon,
+          'icon-size': ['interpolate',['linear'],['zoom'], 1,0.45, 4,0.65, 7,0.85, 10,1.1],
+          'icon-rotate': ['coalesce', ['get','heading'], 0],
+          'icon-rotation-alignment': 'map',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        }, paint: { 'icon-opacity': 0.88 }});
       });
 
       // Balloons (moving entities)
