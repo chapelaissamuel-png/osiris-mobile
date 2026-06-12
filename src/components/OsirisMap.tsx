@@ -468,27 +468,21 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'text-offset': [0, 2], 'text-max-width': 14, 'text-allow-overlap': false,
       }, paint: { 'text-color': '#D32F2F', 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9 }});
 
-      // Flight layers — text-field '✈' + text-rotate for heading (guaranteed render, no custom bitmap needed)
+      // Flight layers — circle type (no font/sprite dependency, guaranteed render)
       const flightLayers = [
-        { id: 'fl-commercial', src: 'flights',    color: '#64B5F6' },  // steel blue  — commercial
-        { id: 'fl-private',    src: 'private-fl', color: '#B0BEC5' },  // silver      — private
-        { id: 'fl-jets',       src: 'jets',       color: '#CE93D8' },  // violet      — private jets
-        { id: 'fl-military',   src: 'military',   color: '#EF5350' },  // crimson     — military
+        { id: 'fl-commercial', src: 'flights',    color: '#64B5F6', stroke: '#1565C0' },  // steel blue  — commercial
+        { id: 'fl-private',    src: 'private-fl', color: '#CFD8DC', stroke: '#546E7A' },  // silver      — private
+        { id: 'fl-jets',       src: 'jets',       color: '#CE93D8', stroke: '#7B1FA2' },  // violet      — private jets
+        { id: 'fl-military',   src: 'military',   color: '#EF5350', stroke: '#B71C1C' },  // crimson     — military
       ];
       flightLayers.forEach(l => {
-        map.addLayer({ id: l.id, type: 'symbol', source: l.src, layout: {
-          'text-field': '✈',
-          'text-size': ['interpolate',['linear'],['zoom'], 1,8, 5,12, 10,18],
-          'text-rotate': ['get','heading'],
-          'text-rotation-alignment': 'map',
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
-          'text-font': ['Open Sans Bold'],
-        }, paint: {
-          'text-color': l.color,
-          'text-opacity': 0.9,
-          'text-halo-color': 'rgba(0,0,0,0.6)',
-          'text-halo-width': 0.5,
+        map.addLayer({ id: l.id, type: 'circle', source: l.src, paint: {
+          'circle-radius': ['interpolate',['linear'],['zoom'], 1,2, 4,3, 7,4, 10,6],
+          'circle-color': l.color,
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 0.8,
+          'circle-stroke-color': l.stroke,
+          'circle-stroke-opacity': 0.7,
         }});
       });
 
