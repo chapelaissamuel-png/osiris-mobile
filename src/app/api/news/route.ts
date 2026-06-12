@@ -18,13 +18,28 @@ import crypto from 'crypto';
  *  Fix: single attribute-order-independent regex anchored on t.me/CHANNEL/NNN (message URLs only).
  */
 
-const TELEGRAM_CHANNELS = ['OSINTtechnical', 'Faytuks', 'Liveuamap', 'CyberKnow'];
+const TELEGRAM_CHANNELS = [
+  'OSINTtechnical', // OSINT technical analysis
+  'Faytuks',        // Breaking geopolitical events
+  'Liveuamap',      // Live conflict maps
+  'CyberKnow',      // Cyber intelligence
+  'Intel_Slava_Z',  // Ukraine/Russia front + battlefield OSINT
+  'warmonitor',     // Global conflict monitor
+  'MiddleEastEye',  // Middle East + North Africa coverage
+];
 
 const FALLBACK_FEEDS: Record<string, string> = {
-  Reuters:      'https://feeds.reuters.com/reuters/worldNews',
-  'Al Jazeera': 'https://www.aljazeera.com/xml/rss/all.xml',
-  BBC:          'https://feeds.bbci.co.uk/news/world/rss.xml',
-  GDACS:        'https://www.gdacs.org/xml/rss.xml',
+  Reuters:       'https://feeds.reuters.com/reuters/worldNews',
+  'Al Jazeera':  'https://www.aljazeera.com/xml/rss/all.xml',
+  BBC:           'https://feeds.bbci.co.uk/news/world/rss.xml',
+  GDACS:         'https://www.gdacs.org/xml/rss.xml',
+  // Health / outbreak intelligence
+  'WHO Outbreaks': 'https://www.who.int/feeds/entity/csr/don/en/rss.xml',
+  // Military & security
+  'Defense.gov':   'https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10',
+  'NATO':          'https://www.nato.int/cps/en/natohq/news.rss',
+  // Humanitarian / crises
+  'ReliefWeb':     'https://reliefweb.int/headlines/rss.xml',
 };
 
 const RISK_KEYWORDS = [
