@@ -152,13 +152,10 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     });
 
     map.on('load', () => {
+      try {
       mapRef.current = map;
-      // Create icons — OSIRIS Unified Palette
-      createIcon(map, 'plane-cyan', '#64B5F6', 24);   // Commercial — steel blue
-      createIcon(map, 'plane-green', '#B0BEC5', 24);   // Private — silver
-      createIcon(map, 'plane-pink', '#7E57C2', 24);    // Govt/VIP jets — violet
-      createIcon(map, 'plane-red', '#D32F2F', 24);     // Military — crimson
-      createIcon(map, 'plane-grey', '#546E7A', 24);    // Unknown — blue-grey
+      // Create misc icons
+      createIcon(map, 'plane-grey', '#546E7A', 24);    // Unknown — blue-grey (kept for fallback)
       createDot(map, 'dot-gold', '#D4AF37', 8);
       createDot(map, 'dot-red', '#D32F2F', 10);
       createDot(map, 'dot-orange', '#E65100', 10);
@@ -471,18 +468,28 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'text-offset': [0, 2], 'text-max-width': 14, 'text-allow-overlap': false,
       }, paint: { 'text-color': '#D32F2F', 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9 }});
 
-      // Flight layers (WebGL symbol — GPU rendered, handles 50K+ smooth)
+      // Flight layers — text-field '✈' + text-rotate for heading (guaranteed render, no custom bitmap needed)
       const flightLayers = [
-        { id: 'fl-commercial', src: 'flights', icon: 'plane-cyan' },
-        { id: 'fl-private', src: 'private-fl', icon: 'plane-green' },
-        { id: 'fl-jets', src: 'jets', icon: 'plane-pink' },
-        { id: 'fl-military', src: 'military', icon: 'plane-red' },
+        { id: 'fl-commercial', src: 'flights',    color: '#64B5F6' },  // steel blue  — commercial
+        { id: 'fl-private',    src: 'private-fl', color: '#B0BEC5' },  // silver      — private
+        { id: 'fl-jets',       src: 'jets',       color: '#CE93D8' },  // violet      — private jets
+        { id: 'fl-military',   src: 'military',   color: '#EF5350' },  // crimson     — military
       ];
       flightLayers.forEach(l => {
         map.addLayer({ id: l.id, type: 'symbol', source: l.src, layout: {
-          'icon-image': l.icon, 'icon-size': ['interpolate',['linear'],['zoom'], 1,0.4, 5,0.7, 10,1],
-          'icon-rotate': ['get','heading'], 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
-        }, paint: { 'icon-opacity': 0.85 }});
+          'text-field': '✈',
+          'text-size': ['interpolate',['linear'],['zoom'], 1,8, 5,12, 10,18],
+          'text-rotate': ['get','heading'],
+          'text-rotation-alignment': 'map',
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+          'text-font': ['Open Sans Bold'],
+        }, paint: {
+          'text-color': l.color,
+          'text-opacity': 0.9,
+          'text-halo-color': 'rgba(0,0,0,0.6)',
+          'text-halo-width': 0.5,
+        }});
       });
 
       // Balloons (moving entities)
@@ -582,6 +589,9 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       }, paint: { 'text-color': ['match', ['get','type'], 'military','#D32F2F', 'tanker','#E65100', 'cargo','#26C6DA', '#B0BEC5'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
 
       setMapReady(true);
+      } catch (err) {
+        console.error('[OSIRIS] map.on(load) error — layer registration aborted:', err);
+      }
     });
 
     // Events
