@@ -1,5 +1,7 @@
 
 import { NextResponse } from 'next/server';
+import { ingestSignals } from '@/lib/focal-points';
+import { updateBaseline } from '@/lib/temporal-anomalies';
 
 /**
  * OSIRIS — Earthquake & Seismic Events
@@ -166,6 +168,21 @@ export async function GET() {
       gdacs.length > 0 ? `GDACS (${gdacs.length} Orange/Red)` : null,
       emsc.length  > 0 ? `EMSC (${emsc.length})`  : null,
     ].filter(Boolean).join(' + ');
+
+    // Feed focal-point & anomaly engines (fire-and-forget)
+    try {
+      const signals = merged
+        .filter((e: any) => e.lat != null && e.lng != null)
+        .map((e: any) => ({
+          lat:       e.lat,
+          lng:       e.lng,
+          type:      'earthquake' as const,
+          severity:  Math.min(10, Math.round(e.magnitude ?? 5)),
+          timestamp: e.time ?? Date.now(),
+        }));
+      ingestSignals(signals);
+      updateBaseline('earthquakes', 'global', merged.length);
+    } catch { /* non-critical */ }
 
     return NextResponse.json(
       { earthquakes: merged, total: merged.length, breakdown: { usgs: usgs.length, gdacs: gdacs.length, emsc: emsc.length }, sources, timestamp: new Date().toISOString() },

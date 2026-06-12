@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { classifyItem, SEVERITY_VALUES } from '@/lib/classifier';
+import { getSourceTier, isStateAffiliated } from '@/lib/source-tiers';
+import { ingestSignals } from '@/lib/focal-points';
+import { updateBaseline } from '@/lib/temporal-anomalies';
 
 /**
  * OSIRIS — Intelligence Feed
@@ -232,28 +236,73 @@ export async function GET() {
       }
     }
 
-    // ── 3. Enrich + score ────────────────────────────────────────────────────
+    // ── 3. Enrich + classify + tier ──────────────────────────────────────────
     const newsItems = allArticles.map(a => {
-      const text  = a.description || a.title || '';
-      const score = scoreRisk(text);
+      const text   = a.description || a.title || '';
+      const score  = scoreRisk(text);
       const coords = findCoords(text);
+
+      // WorldMonitor keyword classifier (sync, instant)
+      const classification = classifyItem(a.title || text);
+      const sourceTier     = getSourceTier(a.source || '');
+      const stateAffiliated = isStateAffiliated(a.source || '');
+
+      // Blend legacy risk_score with classifier severity (higher wins)
+      const classifierScore = SEVERITY_VALUES[classification.level] / 10;
+      const effectiveScore  = Math.max(score, classifierScore);
+
       return {
         id: crypto.createHash('md5').update((a.link || '') + (a.pubDate || '')).digest('hex'),
-        title:       a.title,
-        description: a.description,
-        link:        a.link,
-        published:   a.pubDate,
-        source:      a.source,
-        risk_score:  score,
+        title:            a.title,
+        description:      a.description,
+        link:             a.link,
+        published:        a.pubDate,
+        source:           a.source,
+        risk_score:       effectiveScore,
         coords,
-        coords_default: !coords,
-        machine_assessment: score >= 8
-          ? 'AI analysis indicates elevated tactical priority based on OSINT stream patterns.'
+        coords_default:   !coords,
+        // ── Classification (WorldMonitor pipeline) ────────────────────────
+        threat_level:     classification.level,
+        event_category:   classification.category,
+        classifier_confidence: classification.confidence,
+        classifier_source: classification.source,
+        // ── Source tiering (WorldMonitor taxonomy) ────────────────────────
+        source_tier:      sourceTier,
+        state_affiliated: stateAffiliated,
+        machine_assessment: effectiveScore >= 8 || classification.level === 'critical'
+          ? `[${classification.level.toUpperCase()}/${classification.category}] AI analysis indicates elevated tactical priority.`
+          : classification.level === 'high'
+          ? `[HIGH/${classification.category}] Significant event — monitor for escalation.`
           : null,
       };
     });
 
-    newsItems.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
+    // Sort: critical/high first, then by date
+    newsItems.sort((a, b) => {
+      const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+      const sa = severityOrder[a.threat_level] ?? 4;
+      const sb = severityOrder[b.threat_level] ?? 4;
+      if (sa !== sb) return sa - sb;
+      return new Date(b.published).getTime() - new Date(a.published).getTime();
+    });
+
+    // ── 4. Feed focal-point & anomaly engines (fire-and-forget) ─────────────
+    try {
+      const signals = newsItems
+        .filter(n => n.coords)
+        .map(n => ({
+          lat:       n.coords![0],
+          lng:       n.coords![1],
+          type:      'news' as const,
+          severity:  Math.round(n.risk_score),
+          timestamp: new Date(n.published).getTime(),
+          title:     n.title,
+        }));
+      ingestSignals(signals);
+      updateBaseline('news', 'global', newsItems.length);
+    } catch {
+      // non-critical — never block the response
+    }
 
     return NextResponse.json(
       { news: newsItems, total: newsItems.length, timestamp: new Date().toISOString() },

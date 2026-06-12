@@ -1,5 +1,7 @@
 
 import { NextResponse } from 'next/server';
+import { ingestSignals } from '@/lib/focal-points';
+import { updateBaseline } from '@/lib/temporal-anomalies';
 
 export const dynamic = 'force-dynamic';
 
@@ -185,6 +187,21 @@ export async function GET() {
     if (fires.length > 0) {
       G._osirisFireCache = { fires: fires.slice(0, 3000), source, at: now };
     }
+
+    // Feed focal-point & anomaly engines (fire-and-forget)
+    try {
+      const signals = fires.slice(0, 3000)
+        .filter((f: any) => f.lat != null && f.lng != null)
+        .map((f: any) => ({
+          lat:       f.lat,
+          lng:       f.lng,
+          type:      'fire' as const,
+          severity:  Math.min(10, Math.round((f.frp ?? 50) / 50)),
+          timestamp: Date.now(),
+        }));
+      ingestSignals(signals);
+      updateBaseline('fires', 'global', fires.length);
+    } catch { /* non-critical */ }
 
     return NextResponse.json({
       fires:     fires.slice(0, 3000),
