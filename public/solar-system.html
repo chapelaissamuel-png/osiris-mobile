@@ -77,6 +77,15 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
 .zl-sign.sun-c{color:#ffdd22;font-weight:bold}.zl-sign.moon-c{color:#cccccc}
 .zleg-div{grid-column:1/-1;height:1px;background:rgba(95,208,230,.07);margin:2px 0}
 #zpclose{position:absolute;top:7px;right:9px;cursor:pointer;color:var(--g);font-size:13px;background:none;border:none}
+/* ── GALAXY / DSO INFO PANEL */
+#gip{position:fixed;left:14px;top:50%;transform:translateY(-50%);background:var(--gl);border:1px solid rgba(180,210,255,.28);padding:12px 14px;z-index:25;display:none;min-width:210px}
+@media(max-width:540px){#gip{left:8px;right:8px;top:auto;bottom:70px;transform:none;min-width:0}}
+#gip h3{color:rgba(190,215,255,.9);font:bold 9px/1 var(--f);letter-spacing:.3em;margin-bottom:10px}
+#gipc{position:absolute;top:7px;right:9px;cursor:pointer;color:rgba(190,215,255,.6);font-size:13px;background:none;border:none}
+/* Aspect legend */
+#zasp-leg{margin-top:7px;display:flex;flex-wrap:wrap;gap:3px 10px;font:6px/1.7 var(--f);color:rgba(255,255,255,.36)}
+.zasp-i{display:flex;align-items:center;gap:4px}
+.zasp-d{width:12px;height:2px;border-radius:1px;flex-shrink:0}
 
 /* ── LABELS ── */
 #lbls{position:fixed;inset:0;pointer-events:none;z-index:15;overflow:hidden}
@@ -151,11 +160,28 @@ canvas#c{display:block;position:fixed;inset:0;width:100%!important;height:100%!i
   <div class="pr"><span>ZODIAC</span><span class="pv zod" id="pp-zodiac">—</span></div>
 </div>
 
+<div id="gip">
+  <button id="gipc">✕</button>
+  <h3 id="gi-name">OBJECT</h3>
+  <div class="pr"><span>TYPE</span><span class="pv" id="gi-type">—</span></div>
+  <div class="pr"><span>DISTANCE FROM EARTH</span><span class="pv" id="gi-dist">—</span></div>
+  <div class="pr"><span>DIAMETER</span><span class="pv" id="gi-size">—</span></div>
+  <div class="pr"><span>ESTIMATED STARS</span><span class="pv" id="gi-stars">—</span></div>
+  <div class="pr"><span>MASS</span><span class="pv" id="gi-mass">—</span></div>
+</div>
+
 <div id="zpanel">
   <button id="zpclose">✕</button>
   <h4>THÈME ASTRAL — <span id="zdate"></span></h4>
   <canvas id="zc" width="280" height="280"></canvas>
   <div id="zlegend"></div>
+  <div id="zasp-leg">
+    <span class="zasp-i"><span class="zasp-d" style="background:#fff"></span>Conjunction 0°</span>
+    <span class="zasp-i"><span class="zasp-d" style="background:#4696ff"></span>Sextile 60°</span>
+    <span class="zasp-i"><span class="zasp-d" style="background:#ff5050"></span>Square 90°</span>
+    <span class="zasp-i"><span class="zasp-d" style="background:#50dc78"></span>Trine 120°</span>
+    <span class="zasp-i"><span class="zasp-d" style="background:#ff8218"></span>Opposition 180°</span>
+  </div>
   <button class="cbtn" id="zexport" style="width:100%;margin-top:8px;letter-spacing:.15em">⬇ EXPORT PNG</button>
 </div>
 
@@ -244,8 +270,8 @@ ctrl.zoomSpeed=1.1; ctrl.rotateSpeed=.7;
 
 // ═══ LIGHTS
 scene.add(new THREE.PointLight(0xfff5e0,4,3000,0));
-// Bug 3a fix: ambient was near-black (0x080818*0.55≈0); raise to proper dim ambient
-scene.add(new THREE.AmbientLight(0x1e2038,0.20));
+// Ambient: raised to 0.48 so planet dark sides are dimly lit, not pitch-black
+scene.add(new THREE.AmbientLight(0x203050,0.48));
 
 // ═══ HELPERS
 function gTex(r,g,b,sz=128){
@@ -395,7 +421,10 @@ const mO=MOONS.map(md=>{
 
 // ── Comet
 const cometComa=mkGlow(190,225,255,.32); sG.add(cometComa);
-sG.add(new THREE.Mesh(new THREE.SphereGeometry(.025,12,6),new THREE.MeshBasicMaterial({color:0xddeeff})));
+// Comet nucleus — material pushed to sM so it fades with solar scene (was always opaque → "white square" near Uranus)
+const cBodyMat=new THREE.MeshBasicMaterial({color:0xaaccee,transparent:true});
+sG.add(new THREE.Mesh(new THREE.SphereGeometry(.025,12,6),cBodyMat));
+sM.push(cBodyMat);
 const cTP=new THREE.BufferAttribute(new Float32Array(44*3),3),cDP=new THREE.BufferAttribute(new Float32Array(28*3),3);
 const ctg=new THREE.BufferGeometry();ctg.setAttribute('position',cTP);ctg.setDrawRange(0,44);
 const cdg=new THREE.BufferGeometry();cdg.setAttribute('position',cDP);cdg.setDrawRange(0,28);
@@ -486,6 +515,43 @@ const uniM=[];
   const cmbG=mkGlow(80,50,120,50000);cmbG.material.opacity=.055;uniG.add(cmbG);uniM.push(cmbG.material);
 })();
 
+// ═══ NEARBY GALAXIES (world-space sprites, fade with nearGalOp — wider range than Milky Way content)
+const NEAR_GALS=[
+  {sym:'LMC', n:'LARGE MAGELLANIC CLOUD', wp:new THREE.Vector3(-80,-1240,195),
+   data:{type:'Irregular dwarf galaxy',dist:'163,000 ly',size:'14,000 ly',stars:'~30 billion',mass:'~10¹⁰ M☉'}},
+  {sym:'SMC', n:'SMALL MAGELLANIC CLOUD', wp:new THREE.Vector3(-195,-1580,295),
+   data:{type:'Irregular dwarf galaxy',dist:'~200,000 ly',size:'7,000 ly',stars:'~3 billion',mass:'~7×10⁸ M☉'}},
+  {sym:'M31', n:'ANDROMEDA GALAXY', wp:new THREE.Vector3(1050,310,-1850),
+   data:{type:'Barred spiral SA(s)b',dist:'2.537 million ly',size:'220,000 ly',stars:'~1 trillion',mass:'~10¹² M☉'}},
+  {sym:'M33', n:'TRIANGULUM GALAXY', wp:new THREE.Vector3(1250,280,-2020),
+   data:{type:'Spiral SA(s)cd',dist:'2.73 million ly',size:'60,000 ly',stars:'~40 billion',mass:'~5×10¹⁰ M☉'}},
+];
+const nearGalM=[];
+NEAR_GALS.forEach((g,i)=>{
+  const sc=i<2?55:130;
+  const [r,gb,b]=i<2?[255,222,150]:i===2?[195,205,255]:[185,195,252];
+  const sp=mkGlow(r,gb,b,sc);
+  sp.position.copy(g.wp);scene.add(sp);g.sp=sp;nearGalM.push(sp.material);
+});
+
+// ═══ GALAXY DEEP-SKY OBJECTS (inside galG — nebulae + clusters near solar position)
+const GAL_DSO=[
+  {n:'ORION NEBULA',  pos:new THREE.Vector3(141,-3, 5), col:[255,165,120], sc:18, note:'H II region · 1,344 ly · birthplace of stars'},
+  {n:'CRAB NEBULA',   pos:new THREE.Vector3(103, 5,-34), col:[120,195,255], sc:14, note:'Supernova remnant · 6,523 ly · pulsar at core'},
+  {n:'PLEIADES',      pos:new THREE.Vector3(148, 2,-2),  col:[195,215,255], sc:11, note:'Open cluster · 444 ly · ~1,000 stars'},
+];
+GAL_DSO.forEach(d=>{
+  const sp=mkGlow(d.col[0],d.col[1],d.col[2],d.sc);
+  sp.position.copy(d.pos);galG.add(sp);d.sp=sp;galM.push(sp.material);
+});
+
+// ═══ UNIVERSE STRUCTURE MARKERS (DOM labels only — appear during galaxy→universe transition)
+const UNI_STRUCTS=[
+  {n:'LOCAL GROUP',           sub:'~54 galaxies · 10 million ly across',  wp:new THREE.Vector3(190, 65,  0)},
+  {n:'VIRGO CLUSTER',         sub:'~1,300 galaxies · 65 million ly away', wp:new THREE.Vector3(3800,900,-2200)},
+  {n:'LANIAKEA SUPERCLUSTER', sub:'100,000+ galaxies · 520 million ly',   wp:new THREE.Vector3(9800,2600,5500)},
+];
+
 // ═══ DOM LABELS
 const lblC=document.getElementById('lbls');
 const mkL=(t,c='')=>{const d=document.createElement('div');d.className='lbl '+c;d.textContent=t;d.style.opacity='0';lblC.appendChild(d);return d;};
@@ -494,6 +560,14 @@ const galLbl=mkL('MILKY WAY GALAXY','gx');
 const youLbl=mkL('YOU ARE HERE','you');
 const uniLbl=mkL('OBSERVABLE UNIVERSE','gx');
 const zodLbl=ZS.map((s,i)=>mkL(s+' '+ZN[i].slice(0,3).toUpperCase(),'zod'));
+// Near-galaxy labels (sym + full name sub-label)
+const nearGalSymLbl=NEAR_GALS.map(g=>mkL(g.sym,'gx'));
+const nearGalSubLbl=NEAR_GALS.map(g=>mkL(g.n,'you'));
+// DSO labels
+const dsoLbl=GAL_DSO.map(d=>mkL(d.n,'you'));
+// Universe structure labels (name + sub)
+const uniStrLbl=UNI_STRUCTS.map(u=>mkL(u.n,'gx'));
+const uniStrSub=UNI_STRUCTS.map(u=>mkL(u.sub,'you'));
 
 function resolveOvlp(items){
   items.sort((a,b)=>a.y-b.y);
@@ -514,6 +588,9 @@ const CAM=[
 function setLvl(l){
   if(l<=3)curLvl=l;
   lvBtns.forEach((b,i)=>b.classList.toggle('on',i===l||(i===4&&zodOn)));
+  // Hard-hide galaxy labels immediately when navigating to solar/earth — prevents
+  // the CSS-transition bleed where labels stay partly visible during fly-to
+  if(l<=1){youLbl.style.transition='none';youLbl.style.opacity='0';galLbl.style.transition='none';galLbl.style.opacity='0';setTimeout(()=>{youLbl.style.transition='';galLbl.style.transition='';},80);}
 }
 
 let fly=false,flyT0=0,flyDur=0;
@@ -535,6 +612,8 @@ lvBtns.forEach((btn,i)=>btn.addEventListener('click',()=>{
     return;
   }
   setLvl(i);
+  // Force-hide galaxy labels before any fly-to crossing the galaxy zone
+  if(i<=1){youLbl.style.opacity='0';galLbl.style.opacity='0';}
   if(i===0){const ep=pO[2].mesh.position.clone();flyTo(ep.clone().add(new THREE.Vector3(.05,.03,.06)),ep,2300);}
   else flyTo(CAM[i].p,CAM[i].t,2700);
 }));
@@ -612,13 +691,14 @@ sndBtn.addEventListener('click',function(){
 
 // ═══ PLANET INFO + ZODIAC
 const ppEl=document.getElementById('pp');
+const gipEl=document.getElementById('gip');
 document.getElementById('ppc').addEventListener('click',()=>ppEl.style.display='none');
-const pMeshes=pO.map(o=>o.mesh);
-const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();
-function onTap(cx,cy){
-  ptr.x=(cx/innerWidth)*2-1;ptr.y=-(cy/innerHeight)*2+1;ray.setFromCamera(ptr,cam);
-  const h=ray.intersectObjects(pMeshes);if(!h.length){ppEl.style.display='none';return;}
-  const o=pO.find(x=>x.mesh===h[0].object);if(!o)return;
+document.getElementById('gipc').addEventListener('click',()=>gipEl.style.display='none');
+
+// Screen-space tap detection — replaces raycaster approach (raycaster misses small planets at large distances)
+const TAP_RAD=mob?28:20; // hit radius in px
+
+function showObjInfo(o){
   const pd=o.pd;
   document.getElementById('ppname').textContent=pd.n.toUpperCase();
   document.getElementById('pp-mass').textContent=pd.info.mass;
@@ -629,13 +709,49 @@ function onTap(cx,cy){
   document.getElementById('pp-dist').textContent=`${pd.a.toFixed(3)} AU`;
   const lon=eclLon(o.mesh.position);
   document.getElementById('pp-zodiac').textContent=zodStr(lon);
-  ppEl.style.display='block';
+  ppEl.style.display='block'; gipEl.style.display='none';
+}
+function showGalInfo(g){
+  document.getElementById('gi-name').textContent=`${g.sym} — ${g.n}`;
+  document.getElementById('gi-type').textContent=g.data.type;
+  document.getElementById('gi-dist').textContent=g.data.dist;
+  document.getElementById('gi-size').textContent=g.data.size;
+  document.getElementById('gi-stars').textContent=g.data.stars;
+  document.getElementById('gi-mass').textContent=g.data.mass;
+  gipEl.style.display='block'; ppEl.style.display='none';
+}
+
+let nearGalOp=0; // updated each frame, used for tap check
+function onTap(cx,cy){
+  let bestO=null,bestG=null,bestD2=TAP_RAD*TAP_RAD;
+  for(const o of pO){
+    const p=proj(o.mesh);if(!p.vis)continue;
+    const d2=(cx-p.x)**2+(cy-p.y)**2;
+    if(d2<bestD2){bestD2=d2;bestO=o;bestG=null;}
+  }
+  if(nearGalOp>.05){
+    for(const g of NEAR_GALS){
+      if(!g.sp)continue;
+      const p=proj(g.sp);if(!p.vis)continue;
+      const d2=(cx-p.x)**2+(cy-p.y)**2;
+      if(d2<bestD2){bestD2=d2;bestG=g;bestO=null;}
+    }
+  }
+  if(bestO){showObjInfo(bestO);return;}
+  if(bestG){showGalInfo(bestG);return;}
+  ppEl.style.display='none'; gipEl.style.display='none';
 }
 canvasEl.addEventListener('click',e=>onTap(e.clientX,e.clientY));
 canvasEl.addEventListener('touchend',e=>{if(e.changedTouches.length)onTap(e.changedTouches[0].clientX,e.changedTouches[0].clientY);},{passive:true});
 let ltap=0;
 canvasEl.addEventListener('touchend',e=>{
-  const now=Date.now();if(now-ltap<300&&e.changedTouches.length){ptr.x=(e.changedTouches[0].clientX/innerWidth)*2-1;ptr.y=-(e.changedTouches[0].clientY/innerHeight)*2+1;ray.setFromCamera(ptr,cam);const h=ray.intersectObjects(pMeshes);if(h.length)ctrl.target.copy(h[0].object.position);}
+  const now=Date.now();
+  if(now-ltap<300&&e.changedTouches.length){
+    const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
+    let best=null,bD2=(TAP_RAD*2)**2;
+    for(const o of pO){const p=proj(o.mesh);if(!p.vis)continue;const d2=(cx-p.x)**2+(cy-p.y)**2;if(d2<bD2){bD2=d2;best=o;}}
+    if(best)ctrl.target.copy(best.mesh.position);
+  }
   ltap=now;
 },{passive:true});
 
@@ -721,11 +837,11 @@ function drawZChart(){
 
   // ── 5b. Aspect web — draw lines between bodies sharing a major aspect
   const ASPECTS=[
-    {ang:0,  orb:8, c:'rgba(255,255,255,.22)',lw:.8}, // Conjunction
-    {ang:60, orb:6, c:'rgba(70,150,255,.20)', lw:.6}, // Sextile
-    {ang:90, orb:6, c:'rgba(255,80,80,.22)',  lw:.8}, // Square
-    {ang:120,orb:7, c:'rgba(80,220,120,.22)', lw:.8}, // Trine
-    {ang:180,orb:8, c:'rgba(255,130,40,.22)', lw:.8}, // Opposition
+    {ang:0,  orb:5, c:'rgba(255,255,255,.40)',lw:.9}, // Conjunction  ≤5° orb
+    {ang:60, orb:4, c:'rgba(70,150,255,.34)', lw:.7}, // Sextile      ≤4°
+    {ang:90, orb:4, c:'rgba(255,80,80,.38)',  lw:.9}, // Square       ≤4°
+    {ang:120,orb:4, c:'rgba(80,220,120,.38)', lw:.9}, // Trine        ≤4°
+    {ang:180,orb:5, c:'rgba(255,130,40,.38)', lw:.9}, // Opposition   ≤5°
   ];
   for(let ai=0;ai<allBodies.length;ai++){
     for(let bi=ai+1;bi<allBodies.length;bi++){
@@ -840,6 +956,12 @@ function loop(){
   const sOp=lo(cd,0,2,68,105), gOp=lo(cd,92,130,2200,4500), uOp=lo(cd,2800,5000,9e9,9e9);
 
   for(const m of sM)m.opacity=sOp;
+  // Corona: aggressive opacity fade below 8 AU — scale clamp alone fills >100° FOV at ~1 AU
+  const corFade=Math.min(1,Math.max(0,(cd-0.8)/7.2)); // 0 at ≤0.8 AU, 1.0 at ≥8 AU
+  for(const g of SUNGL)g.material.opacity=sOp*corFade;
+  // Near-galaxy sprites: wider fade window than Milky Way (3000–7000 AU visible range)
+  nearGalOp=lo(cd,92,165,3000,7000);
+  for(const m of nearGalM)m.opacity=nearGalOp;
   for(const m of galM)m.opacity=gOp;
   for(const m of uniM)m.opacity=uOp;
   sG.visible=sOp>.004;
@@ -908,16 +1030,55 @@ function loop(){
     });
   }else zodLbl.forEach(l=>l.style.opacity='0');
 
-  // YOU ARE HERE / Galaxy labels: only show when galG is actually visible (cd>88 AU)
-  const showGalLabels=galG.visible&&gOp>.25;
-  const gl=showGalLabels?gOp:0;
-  galLbl.style.opacity=gl;youLbl.style.opacity=gl;
-  if(gl>.01){
-    const gc=new THREE.Vector3(-150,0,0).project(cam);
-    setL(galLbl,(gc.x+1)/2*innerWidth,(-gc.y+1)/2*innerHeight-32,gl);
-    const yp=proj(youG);if(yp.vis)setL(youLbl,yp.x,yp.y-14,gl);
+  // YOU ARE HERE / Galaxy labels
+  // Hard-hide at cd<80 AU (solar territory) — prevents CSS-transition bleed-through during Universe→Solar fly-to
+  if(cd<80){
+    galLbl.style.opacity='0'; youLbl.style.opacity='0';
+  }else{
+    const showGalLabels=galG.visible&&gOp>.25;
+    const gl=showGalLabels?gOp:0;
+    galLbl.style.opacity=gl; youLbl.style.opacity=gl;
+    if(gl>.01){
+      const gc=new THREE.Vector3(-150,0,0).project(cam);
+      setL(galLbl,(gc.x+1)/2*innerWidth,(-gc.y+1)/2*innerHeight-32,gl);
+      const yp=proj(youG);if(yp.vis)setL(youLbl,yp.x,yp.y-14,gl);
+    }
   }
   uniLbl.style.opacity=uOp;if(uOp>.01)setL(uniLbl,innerWidth/2,72,uOp);
+
+  // Near-galaxy labels (LMC / SMC / M31 / M33) — appear as user zooms out into local group range
+  if(nearGalOp>.03){
+    NEAR_GALS.forEach((g,i)=>{
+      const p=proj(g.sp);
+      if(p.vis){
+        setL(nearGalSymLbl[i],p.x,p.y-14,nearGalOp);
+        setL(nearGalSubLbl[i],p.x,p.y+2, nearGalOp*.5);
+      }else{nearGalSymLbl[i].style.opacity='0';nearGalSubLbl[i].style.opacity='0';}
+    });
+  }else{nearGalSymLbl.forEach(l=>l.style.opacity='0');nearGalSubLbl.forEach(l=>l.style.opacity='0');}
+
+  // Galaxy deep-sky object labels (Orion Nebula, Crab, Pleiades) — mid galaxy zoom only
+  const dsoLblOp=gOp>.05&&cd>160&&cd<420?Math.min(gOp,(420-cd)/220):0;
+  if(dsoLblOp>.02){
+    GAL_DSO.forEach((d,i)=>{
+      const p=proj(d.sp);
+      if(p.vis)setL(dsoLbl[i],p.x,p.y-9,dsoLblOp);
+      else dsoLbl[i].style.opacity='0';
+    });
+  }else dsoLbl.forEach(l=>l.style.opacity='0');
+
+  // Universe structure labels (Local Group / Virgo Cluster / Laniakea)
+  const uniStrOp=lo(cd,2500,4500,15000,28000);
+  if(uniStrOp>.02){
+    UNI_STRUCTS.forEach((u,i)=>{
+      const tmp=u.wp.clone().project(cam);
+      if(tmp.z<1&&tmp.z>-1){
+        const sx=(tmp.x+1)/2*innerWidth,sy=(-tmp.y+1)/2*innerHeight;
+        setL(uniStrLbl[i],sx,sy-10,uniStrOp);
+        setL(uniStrSub[i],sx,sy+4, uniStrOp*.5);
+      }else{uniStrLbl[i].style.opacity='0';uniStrSub[i].style.opacity='0';}
+    });
+  }else{uniStrLbl.forEach(l=>l.style.opacity='0');uniStrSub.forEach(l=>l.style.opacity='0');}
 
   if(fn%10===0)updScl(cd);
   if(zodOn)drawZChart();
