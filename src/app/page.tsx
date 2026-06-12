@@ -808,6 +808,18 @@ export default function Dashboard() {
           </span>
         </button>
 
+        {/* Cosmic Explorer */}
+        <a
+          href="/solar-system"
+          className="glass-panel p-3.5 pointer-events-auto hover:border-[var(--cyan-primary)]/40 transition-colors group relative flex items-center justify-center"
+          title="Cosmic Explorer"
+        >
+          <span className="text-base leading-none group-hover:scale-110 transition-transform block">🪐</span>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 text-[9px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity glass-panel px-2 py-1 z-[300]">
+            COSMIC EXPLORER
+          </span>
+        </a>
+
       </motion.div>
 
       {/* ── HEADER ── */}
@@ -1023,6 +1035,10 @@ export default function Dashboard() {
                   <span className={tab.id === 'recon' ? 'text-[var(--cyan-primary)]' : ''}>{tab.label}</span>
                 </button>
               ))}
+              <a href="/solar-system" className="mobile-nav-btn">
+                <span className="text-base">🪐</span>
+                <span>COSMOS</span>
+              </a>
             </div>
           </div>
 
