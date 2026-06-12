@@ -34,6 +34,7 @@ const LAYER_GROUPS = [
       { key: 'private', label: 'Private', icon: Plane, color: '#B0BEC5', dataKey: 'private_flights' },
       { key: 'jets', label: 'Private Jets', icon: Plane, color: '#7E57C2', dataKey: 'private_jets' },
       { key: 'military', label: 'Military', icon: Shield, color: '#D32F2F', dataKey: 'military_flights' },
+      { key: 'balloons', label: 'Weather Balloons', icon: Radio, color: '#80DEEA', dataKey: 'balloons' },
     ],
   },
   {
@@ -62,6 +63,7 @@ const LAYER_GROUPS = [
       { key: 'earthquakes', label: 'Earthquakes (24h)', icon: Activity, color: '#F9A825', dataKey: 'earthquakes' },
       { key: 'fires', label: 'Active Fires', icon: Flame, color: '#E65100', dataKey: 'fires' },
       { key: 'weather', label: 'Severe Weather', icon: CloudLightning, color: '#7E57C2', dataKey: 'weather_events' },
+      { key: 'radiation', label: 'Radiation Monitors', icon: Radiation, color: '#66BB6A', dataKey: 'radiation' },
     ],
   },
   {
@@ -69,6 +71,7 @@ const LAYER_GROUPS = [
     fullLabel: 'THREATS & INFRA',
     color: '#D32F2F',
     layers: [
+      { key: 'focal_points', label: 'Focal Points', icon: Target, color: '#FF9500', dataKey: 'focal_points' },
       { key: 'infrastructure', label: 'Nuclear Facilities', icon: Radiation, color: '#26A69A', dataKey: 'infrastructure' },
       { key: 'global_incidents', label: 'Global Incidents', icon: AlertTriangle, color: '#D32F2F', dataKey: 'gdelt' },
       { key: 'gps_jamming', label: 'GPS Jamming', icon: Radio, color: '#D32F2F', dataKey: 'gps_jamming' },

@@ -139,6 +139,7 @@ export default function Dashboard() {
     fires: false,
     weather: false,
     radiation: false,
+    focal_points: true,
     infrastructure: false,
     global_incidents: true,
     war_alerts: false,
@@ -388,6 +389,11 @@ export default function Dashboard() {
       fetchEndpoint('/api/radiation', d => ({ radiation: d.stations }));
       layerFetchedRef.current.add('radiation');
     }
+    // Focal Points — convergence alerts (always fetch on mount, re-fetch on toggle)
+    if (activeLayers.focal_points && !layerFetchedRef.current.has('focal_points')) {
+      fetchEndpoint('/api/focal-points', d => ({ focal_points: d.alerts }));
+      layerFetchedRef.current.add('focal_points');
+    }
     // Live News
     if (activeLayers.live_news && !layerFetchedRef.current.has('live_news')) {
       fetchEndpoint('/api/live-news', d => ({ live_feeds: d.feeds }));
@@ -451,6 +457,9 @@ export default function Dashboard() {
     }
     if (activeLayers.radiation) {
       intervals.push(setInterval(() => fetchEndpoint('/api/radiation', d => ({ radiation: d.stations })), 300000)); // 5m
+    }
+    if (activeLayers.focal_points) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/focal-points', d => ({ focal_points: d.alerts })), 300000)); // 5m
     }
     if (activeLayers.maritime) {
       intervals.push(setInterval(() => fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships })), 10000)); // 10s

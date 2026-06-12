@@ -6,12 +6,53 @@ import { Newspaper, ChevronDown, ChevronUp, ExternalLink, MapPin, Zap } from 'lu
 
 /* ═══════════════════════════════════════════════════════════════
    OSIRIS — Intelligence Feed
-   SIGINT-style news aggregation with risk scoring
+   SIGINT-style news aggregation with AI classification + tiering
    ═══════════════════════════════════════════════════════════════ */
 
 interface IntelFeedProps {
   data: any;
   onLocate?: (lat: number, lng: number) => void;
+}
+
+const THREAT_COLORS: Record<string, string> = {
+  critical: '#FF3D3D',
+  high:     '#FF9500',
+  medium:   '#FFD700',
+  low:      '#00E676',
+  info:     '#607D8B',
+};
+
+const TIER_COLORS: Record<number, string> = {
+  1: '#D4AF37',
+  2: '#00E5FF',
+  3: '#90A4AE',
+  4: '#546E7A',
+};
+
+function ThreatBadge({ level }: { level: string }) {
+  const color = THREAT_COLORS[level] ?? '#607D8B';
+  const pulse = level === 'critical';
+  return (
+    <span
+      className={`text-[8px] font-mono font-bold tracking-widest px-1.5 py-0.5 rounded ${pulse ? 'animate-osiris-pulse' : ''}`}
+      style={{ color, background: `${color}20`, border: `1px solid ${color}50` }}
+    >
+      {level.toUpperCase()}
+    </span>
+  );
+}
+
+function TierBadge({ tier }: { tier: number }) {
+  const color = TIER_COLORS[tier] ?? '#546E7A';
+  return (
+    <span
+      className="text-[7px] font-mono font-bold px-1 py-0.5 rounded"
+      style={{ color, background: `${color}15`, border: `1px solid ${color}40` }}
+      title={`Source tier ${tier} — ${tier === 1 ? 'Wire services' : tier === 2 ? 'Major outlets' : tier === 3 ? 'Specialist / OSINT' : 'Blogs / fringe'}`}
+    >
+      T{tier}
+    </span>
+  );
 }
 
 function getRiskClass(score: number): string {
@@ -99,11 +140,18 @@ export default function IntelFeed({ data, onLocate }: IntelFeedProps) {
                     onClick={() => { if (item.link) window.open(item.link, '_blank', 'noopener,noreferrer'); else setSelectedIdx(selectedIdx === i ? null : i); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && item.link) window.open(item.link, '_blank', 'noopener,noreferrer'); }}
                   >
-                    {/* Top row: risk badge + source + time */}
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[9px] font-mono font-bold tracking-widest ${getRiskClass(item.risk_score)}`}>
-                        {getRiskLabel(item.risk_score)}
-                      </span>
+                    {/* Top row: threat badge + tier + source + time */}
+                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                      {item.threat_level
+                        ? <ThreatBadge level={item.threat_level} />
+                        : <span className={`text-[9px] font-mono font-bold tracking-widest ${getRiskClass(item.risk_score)}`}>{getRiskLabel(item.risk_score)}</span>
+                      }
+                      {item.source_tier != null && <TierBadge tier={item.source_tier} />}
+                      {item.state_affiliated && (
+                        <span className="text-[7px] font-mono font-bold px-1 py-0.5 rounded" style={{ color: '#FF9500', background: '#FF950015', border: '1px solid #FF950040' }} title="State-affiliated media">
+                          ⚠ STATE
+                        </span>
+                      )}
                       <span className="text-[8px] font-mono text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">
                         {item.source}
                       </span>

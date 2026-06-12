@@ -166,7 +166,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       createDot(map, 'dot-fire', '#E65100', 10);
       createDot(map, 'dot-cctv', '#7E57C2', 10);
 
-      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'network-mesh'];
+      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'network-mesh', 'focal-points'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
       // Warning icon generator (parameterized — eliminates 3x copy-paste)
@@ -285,6 +285,34 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
       map.addLayer({ id: 'gdelt-dots', type: 'circle', source: 'gdelt', paint: {
         'circle-radius': 4, 'circle-color': '#D32F2F', 'circle-opacity': 0.5, 'circle-stroke-width': 1, 'circle-stroke-color': '#D32F2F', 'circle-stroke-opacity': 0.25,
+      }});
+
+      // ══ FOCAL POINTS — Convergence Alerts (3+ signal types in 1°×1° cell) ══
+      map.addLayer({ id: 'focal-halo', type: 'circle', source: 'focal-points', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,22, 5,40, 8,70],
+        'circle-color': ['case', ['>=', ['get','convergenceScore'], 6], '#FF3D3D', '#FF9500'],
+        'circle-opacity': 0.06, 'circle-blur': 1.5,
+      }});
+      map.addLayer({ id: 'focal-ring', type: 'circle', source: 'focal-points', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,10, 5,18, 8,32],
+        'circle-color': 'transparent', 'circle-opacity': 1,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': ['case', ['>=', ['get','convergenceScore'], 6], '#FF3D3D', '#FF9500'],
+        'circle-stroke-opacity': 0.7,
+      }});
+      map.addLayer({ id: 'focal-dot', type: 'circle', source: 'focal-points', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,4, 5,7, 8,10],
+        'circle-color': ['case', ['>=', ['get','convergenceScore'], 6], '#FF3D3D', '#FF9500'],
+        'circle-opacity': 0.9,
+        'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.5,
+      }});
+      map.addLayer({ id: 'focal-label', type: 'symbol', source: 'focal-points', minzoom: 3, layout: {
+        'text-field': ['concat', 'FP·', ['to-string', ['round', ['get','convergenceScore']]]],
+        'text-size': 9, 'text-font': ['Open Sans Bold'],
+        'text-offset': [0, 1.8], 'text-allow-overlap': false,
+      }, paint: {
+        'text-color': ['case', ['>=', ['get','convergenceScore'], 6], '#FF3D3D', '#FF9500'],
+        'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9,
       }});
 
       // GPS Jamming — crimson
@@ -846,6 +874,30 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       </div>`);
     });
 
+    // ── Focal Points ──
+    map.on('click', 'focal-dot', e => {
+      if (!e.features?.length) return;
+      const p = e.features[0].properties as any;
+      const coords = (e.features[0].geometry as any).coordinates;
+      const score = parseFloat(p.convergenceScore ?? 0).toFixed(1);
+      const types = JSON.parse(p.signalTypes ?? '[]').join(', ').toUpperCase() || '—';
+      const color = parseFloat(p.convergenceScore) >= 6 ? '#FF3D3D' : '#FF9500';
+      popup(coords, `<div style="${pStyle}border:1px solid ${color}50;">
+        <div style="color:${color};font-size:13px;font-weight:700;margin-bottom:6px;">🎯 FOCAL POINT ALERT</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px;margin-bottom:8px;">
+          <div><span style="color:#5C5A54;">SCORE</span><br/><span style="color:${color};font-weight:bold;font-size:13px;">${score}</span></div>
+          <div><span style="color:#5C5A54;">SIGNALS</span><br/><span style="color:#E8E6E0;">${p.signalCount ?? '—'}</span></div>
+          <div><span style="color:#5C5A54;">AVG SEVERITY</span><br/><span style="color:#E8E6E0;">${parseFloat(p.avgSeverity ?? 0).toFixed(1)}</span></div>
+          <div><span style="color:#5C5A54;">RECENCY</span><br/><span style="color:#E8E6E0;">${(parseFloat(p.recencyFactor ?? 0) * 100).toFixed(0)}%</span></div>
+        </div>
+        <div style="font-size:9px;color:#5C5A54;margin-bottom:4px;">SIGNAL TYPES</div>
+        <div style="font-size:10px;color:${color};font-weight:bold;">${types}</div>
+        <div style="font-size:8px;color:#5C5A54;margin-top:6px;">${coords[1].toFixed(2)}°, ${coords[0].toFixed(2)}° — 1°×1° convergence cell</div>
+      </div>`);
+    });
+    map.on('mouseenter', 'focal-dot', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'focal-dot', () => { map.getCanvas().style.cursor = ''; });
+
     // ── Balloons / Sondes ──
     map.on('click', 'balloon-dots', e => {
       if (!e.features?.length) return;
@@ -1137,6 +1189,21 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setGeo('radiation', activeLayers.radiation && data.radiation ? data.radiation.map((r: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [r.lng, r.lat] }, properties: { name: r.name, city: r.city, country: r.country, reading: r.reading, status: r.status, network: r.network } })) : []);
   }, [mapReady, data.radiation, activeLayers.radiation, setGeo]);
 
+  useEffect(() => {
+    if (!mapReady) return;
+    setGeo('focal-points', activeLayers.focal_points && data.focal_points ? data.focal_points.map((fp: any) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [fp.lng, fp.lat] },
+      properties: {
+        convergenceScore: fp.convergenceScore,
+        signalCount: fp.signalCount,
+        signalTypes: JSON.stringify(fp.signalTypes ?? []),
+        avgSeverity: fp.avgSeverity,
+        recencyFactor: fp.recencyFactor,
+      },
+    })) : []);
+  }, [mapReady, data.focal_points, activeLayers.focal_points, setGeo]);
+
   // ══ OSIRIS SDK — Lattice Sensor Mesh ══
   // Uses real submarine cable data for SEA domain, curated routes for AIR/INTEL
   useEffect(() => {
@@ -1251,6 +1318,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
     setVis(['balloon-dots','balloon-label'], activeLayers.balloons);
     setVis(['rad-glow','rad-dots','rad-label'], activeLayers.radiation);
+    setVis(['focal-halo','focal-ring','focal-dot','focal-label'], activeLayers.focal_points);
     setVis(['sdk-sea','sdk-sea-glow','sdk-sea-atmo'], activeLayers.sdk_sea !== false);
     setVis(['sdk-air','sdk-air-glow','sdk-air-atmo'], activeLayers.sdk_air !== false);
     setVis(['sdk-intel','sdk-intel-glow','sdk-intel-atmo'], activeLayers.sdk_naval !== false);

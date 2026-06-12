@@ -19,6 +19,10 @@ export default function GlobalStatusBar() {
   const [cyber, setCyber] = useState<any>(null);
   const [openCount, setOpenCount] = useState(0);
   const [hoveredRisk, setHoveredRisk] = useState<CountryRisk | null>(null);
+  const [anomalyCount, setAnomalyCount] = useState(0);
+  const [anomalyHover, setAnomalyHover] = useState(false);
+  const [anomalyList, setAnomalyList] = useState<any[]>([]);
+  const [focalCount, setFocalCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,7 +43,31 @@ export default function GlobalStatusBar() {
       } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
     };
     fetchData();
-    const iv = setInterval(fetchData, 1800000); // 30 min (was 5 min)
+    const iv = setInterval(fetchData, 1800000);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    const fetchIntel = async () => {
+      try {
+        const [anomRes, fpRes] = await Promise.allSettled([
+          fetch('/api/temporal-anomalies'),
+          fetch('/api/focal-points'),
+        ]);
+        if (anomRes.status === 'fulfilled' && anomRes.value.ok) {
+          const d = await anomRes.value.json();
+          const list: any[] = d.anomalies || [];
+          setAnomalyCount(list.length);
+          setAnomalyList(list.slice(0, 5));
+        }
+        if (fpRes.status === 'fulfilled' && fpRes.value.ok) {
+          const d = await fpRes.value.json();
+          setFocalCount(d.total || 0);
+        }
+      } catch (e) { console.warn('[OSIRIS] Intel fetch error:', e instanceof Error ? e.message : e); }
+    };
+    fetchIntel();
+    const iv = setInterval(fetchIntel, 300000); // 5 min
     return () => clearInterval(iv);
   }, []);
 
@@ -82,6 +110,25 @@ export default function GlobalStatusBar() {
         <span className="text-[#E040FB]">CYBER</span>
         <span className="text-[var(--text-primary)]">{cveCount} CVEs</span>
       </span>
+      <span className="text-[var(--border-primary)] mx-1">|</span>
+      {focalCount > 0 && (
+        <span className="inline-flex items-center gap-1 mx-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-osiris-pulse flex-shrink-0" />
+          <span className="text-orange-400 font-bold">{focalCount}</span>
+          <span className="text-[var(--text-muted)]">FOCAL PTS</span>
+        </span>
+      )}
+      <span
+        className="inline-flex items-center gap-1 mx-2 cursor-help pointer-events-auto relative"
+        onMouseEnter={() => setAnomalyHover(true)}
+        onMouseLeave={() => setAnomalyHover(false)}
+      >
+        <span className={anomalyCount > 0 ? 'text-yellow-400 font-bold' : 'text-[var(--text-muted)]'}>
+          {anomalyCount}
+        </span>
+        <span className="text-[var(--text-muted)]">ANOMALIES</span>
+        {anomalyCount > 0 && <span className="w-1 h-1 rounded-full bg-yellow-400 animate-osiris-pulse flex-shrink-0" />}
+      </span>
     </>
   );
 
@@ -110,6 +157,25 @@ export default function GlobalStatusBar() {
           </div>
         </div>
       </div>
+
+      {/* Anomaly tooltip */}
+      {anomalyHover && anomalyCount > 0 && (
+        <div className="absolute bottom-[28px] right-1/4 z-[300] pointer-events-none">
+          <div className="glass-panel px-3 py-2 text-[10px] font-mono whitespace-nowrap" style={{ borderColor: 'rgba(250,204,21,0.4)', minWidth: '220px' }}>
+            <div className="text-yellow-400 font-bold mb-2 tracking-widest text-[9px]">TEMPORAL ANOMALIES</div>
+            {anomalyList.map((a: any, i: number) => (
+              <div key={i} className="flex items-center gap-2 mb-1">
+                <span className="text-yellow-400 font-bold text-[9px]">Z{a.z_score?.toFixed(1) ?? '?'}</span>
+                <span className="text-[var(--text-secondary)] text-[9px]">{a.type} · {a.region ?? 'Global'}</span>
+                <span className={`text-[8px] font-bold ${a.severity === 'critical' ? 'text-red-400' : a.severity === 'high' ? 'text-orange-400' : 'text-yellow-400'}`}>
+                  {a.severity?.toUpperCase()}
+                </span>
+              </div>
+            ))}
+            {anomalyCount > 5 && <div className="text-[var(--text-muted)] text-[8px]">+{anomalyCount - 5} more</div>}
+          </div>
+        </div>
+      )}
 
       {/* Hover tooltip for risk scores */}
       {hoveredRisk && (
