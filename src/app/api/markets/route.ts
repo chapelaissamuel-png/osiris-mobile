@@ -19,6 +19,7 @@ async function fetchYahoo(symbol: string): Promise<any | null> {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json',
@@ -48,6 +49,7 @@ async function fetchYahooV6(symbol: string): Promise<any | null> {
     const url = `https://query2.finance.yahoo.com/v6/finance/quote?symbols=${encodeURIComponent(symbol)}`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       },
@@ -69,6 +71,7 @@ async function fetchCoinGecko(): Promise<Record<string, any>> {
   try {
     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true', {
       signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
     });
     if (!res.ok) return {};
     const data = await res.json();
@@ -115,7 +118,7 @@ export async function GET() {
       Promise.all(COMMODITY_TICKERS.map(async t => ({ symbol: t, data: await fetchQuote(t) }))),
       Promise.all(CRYPTO_TICKERS.map(async t => ({ symbol: t, data: await fetchQuote(t) }))),
       Promise.all(INDEX_TICKERS.map(async t => ({ symbol: t, data: await fetchQuote(t) }))),
-      fetchCoinGecko(), // CoinGecko as crypto fallback
+      fetchCoinGecko(),
     ]);
 
     const stocks: Record<string, any> = {};
@@ -130,7 +133,6 @@ export async function GET() {
     // Crypto: prefer Yahoo, fallback to CoinGecko
     const crypto: Record<string, any> = {};
     for (const { symbol, data } of yahooResults) { if (data) crypto[CRYPTO_NAMES[symbol] || symbol] = data; }
-    // Fill gaps with CoinGecko
     for (const [name, data] of Object.entries(cgCrypto)) {
       if (!crypto[name]) crypto[name] = data;
     }
@@ -138,41 +140,48 @@ export async function GET() {
     const indices: Record<string, any> = {};
     for (const { symbol, data } of indexResults) { if (data) indices[INDEX_NAMES[symbol] || symbol] = data; }
 
-    // --- SCM Integration: Chokepoint-Commodity Correlation ---
+    // SCM Integration: Chokepoint-Commodity Correlation
+    // Uses PORT env var so this works in both dev (port varies) and Railway production.
     const scm_alerts: string[] = [];
     try {
-      const maritimeRes = await fetch('http://127.0.0.1:3000/api/maritime', { signal: AbortSignal.timeout(3000) });
+      const port = process.env.PORT || 3000;
+      const maritimeRes = await fetch(`http://127.0.0.1:${port}/api/maritime`, {
+        signal: AbortSignal.timeout(3000),
+        cache: 'no-store',
+      });
       if (maritimeRes.ok) {
         const maritimeData = await maritimeRes.json();
         const chokepoints = maritimeData.chokepoints || [];
-        
+
         const hormuz = chokepoints.find((c: any) => c.name === 'Strait of Hormuz');
-        const suez = chokepoints.find((c: any) => c.name === 'Suez Canal');
+        const suez   = chokepoints.find((c: any) => c.name === 'Suez Canal');
         const panama = chokepoints.find((c: any) => c.name === 'Panama Canal');
 
         if (hormuz && (hormuz.risk === 'CRITICAL' || hormuz.risk === 'HIGH')) {
-          scm_alerts.push(`🚨 HORMUZ ${hormuz.risk}: High risk of WTI/Brent Crude price spike due to congestion.`);
+          scm_alerts.push(`HORMUZ ${hormuz.risk}: High risk of WTI/Brent Crude price spike due to congestion.`);
         }
         if (suez && (suez.risk === 'CRITICAL' || suez.risk === 'HIGH')) {
-          scm_alerts.push(`🚨 SUEZ ${suez.risk}: Potential supply chain delays impacting European markets and Energy.`);
+          scm_alerts.push(`SUEZ ${suez.risk}: Potential supply chain delays impacting European markets and Energy.`);
         }
         if (panama && (panama.risk === 'CRITICAL' || panama.risk === 'HIGH')) {
-          scm_alerts.push(`🚨 PANAMA ${panama.risk}: LNG and Agriculture (Corn/Wheat) shipment delays expected.`);
+          scm_alerts.push(`PANAMA ${panama.risk}: LNG and Agriculture (Corn/Wheat) shipment delays expected.`);
         }
       }
-    } catch (e) {
-      // Ignore if maritime is unreachable
+    } catch {
+      // Maritime sub-request is best-effort; SCM alerts are optional
     }
 
     return NextResponse.json({
       stocks, oil, commodities, crypto, indices, scm_alerts,
       timestamp: new Date().toISOString(),
     }, {
-      headers: { 'Cache-Control': 'no-store' }, // Prevent caching so alerts update real-time
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
     console.error('Markets fetch error:', error);
-    return NextResponse.json({ stocks: {}, oil: {}, commodities: {}, crypto: {}, indices: {}, scm_alerts: [], error: 'Failed' }, { status: 500 });
+    return NextResponse.json(
+      { stocks: {}, oil: {}, commodities: {}, crypto: {}, indices: {}, scm_alerts: [], error: 'Failed' },
+      { status: 500 }
+    );
   }
 }
-

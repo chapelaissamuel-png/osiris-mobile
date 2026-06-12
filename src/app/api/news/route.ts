@@ -6,20 +6,25 @@ import crypto from 'crypto';
  *
  * Strategy:
  *  1. Scrape Telegram public preview pages (t.me/s/<channel>) — no API key needed.
- *  2. If Telegram IP-blocks the server (empty results), fall back to RSS feeds.
- *  3. Both paths use cache:'no-store' to prevent Next.js Data Cache from freezing responses.
+ *  2. If Telegram returns nothing, fall back to RSS feeds.
+ *  3. All internal fetch() calls use cache:'no-store'.
  *  4. Response header is no-store so CDN/shared caches never serve stale intel.
+ *
+ * Timestamp fix (v3):
+ *  The previous parser used two broken regexes:
+ *  - Primary required class= before href= in <a> tag → Telegram puts href first → 0 matches
+ *  - Fallback searched <time> THEN <a href="t.me"> forward → in real HTML <a> wraps <time>,
+ *    so it matched <time datetime="recent"> + the next old post link in message text → "1205d ago"
+ *  Fix: single attribute-order-independent regex anchored on t.me/CHANNEL/NNN (message URLs only).
  */
 
 const TELEGRAM_CHANNELS = ['OSINTtechnical', 'Faytuks', 'Liveuamap', 'CyberKnow'];
 
-// More diverse fallback set — Reuters updates every 15-30 min, much fresher than BBC/GDACS
 const FALLBACK_FEEDS: Record<string, string> = {
-  Reuters:     'https://feeds.reuters.com/reuters/worldNews',
+  Reuters:      'https://feeds.reuters.com/reuters/worldNews',
   'Al Jazeera': 'https://www.aljazeera.com/xml/rss/all.xml',
   BBC:          'https://feeds.bbci.co.uk/news/world/rss.xml',
   GDACS:        'https://www.gdacs.org/xml/rss.xml',
-  'AP News':    'https://rsshub.app/apnews/topics/world-news',
 };
 
 const RISK_KEYWORDS = [
@@ -30,17 +35,17 @@ const RISK_KEYWORDS = [
 ];
 
 const KEYWORD_COORDS: Record<string, [number, number]> = {
-  'ukraine':       [49.487, 31.272], 'kyiv':          [50.450, 30.523],
-  'russia':        [61.524,105.318], 'moscow':         [55.755, 37.617],
-  'israel':        [31.046, 34.851], 'gaza':           [31.416, 34.333],
-  'iran':          [32.427, 53.688], 'lebanon':        [33.854, 35.862],
-  'syria':         [34.802, 38.996], 'yemen':          [15.552, 48.516],
-  'china':         [35.861,104.195], 'taiwan':         [23.697,120.960],
-  'united states': [38.907,-77.036], 'europe':         [48.800,  2.300],
-  'middle east':   [31.500, 34.800], 'sudan':          [15.558, 32.532],
-  'myanmar':       [17.133, 95.932], 'haiti':          [18.971,-72.285],
-  'afghanistan':   [33.939, 67.710], 'north korea':    [40.339,127.510],
-  'pakistan':      [30.375, 69.345], 'sahel':          [15.000,  2.000],
+  'ukraine':       [49.487, 31.272], 'kyiv':        [50.450, 30.523],
+  'russia':        [61.524,105.318], 'moscow':       [55.755, 37.617],
+  'israel':        [31.046, 34.851], 'gaza':         [31.416, 34.333],
+  'iran':          [32.427, 53.688], 'lebanon':      [33.854, 35.862],
+  'syria':         [34.802, 38.996], 'yemen':        [15.552, 48.516],
+  'china':         [35.861,104.195], 'taiwan':       [23.697,120.960],
+  'united states': [38.907,-77.036], 'europe':       [48.800,  2.300],
+  'middle east':   [31.500, 34.800], 'sudan':        [15.558, 32.532],
+  'myanmar':       [17.133, 95.932], 'haiti':        [18.971,-72.285],
+  'afghanistan':   [33.939, 67.710], 'north korea':  [40.339,127.510],
+  'pakistan':      [30.375, 69.345], 'sahel':        [15.000,  2.000],
 };
 
 function scoreRisk(text: string): number {
@@ -66,37 +71,51 @@ function stripHtml(html: string): string {
 }
 
 /**
- * Robust Telegram parser — anchors on the stable <a class="tgme_widget_message_date"> + <time>
- * elements instead of the outer wrapper divs whose class names change frequently.
+ * Telegram HTML parser — v3
+ *
+ * Key: use ONE regex that matches href regardless of attribute order inside the <a> tag.
+ *
+ *   /<a\b[^>]*\bhref="(https:\/\/t\.me\/[\w.]+\/\d+)"[^>]*>[\s\S]{0,300}?<time\b[^>]*\bdatetime="([^"]+)"/gi
+ *
+ * Why this works:
+ *   - [^>]* before \bhref= matches any other attributes (like class=) before href=
+ *   - href= must point to t.me/CHANNEL/NNN where NNN is a number (message-specific URL)
+ *     This is critical — it rules out channel links (t.me/CyberKnow) that appear in message text
+ *   - [^>]* after href= captures trailing attributes then the closing >
+ *   - [\s\S]{0,300}? then reaches the <time datetime> tag inside the same anchor
+ *
+ * Safety:
+ *   - 30-day freshness filter: discard any item older than 30 days.
+ *     Even if the parser makes a mistake it can't show 4-year-old items.
  */
 function parseTelegramHTML(html: string, channel: string): any[] {
   if (!html || html.length < 500) return [];
 
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - THIRTY_DAYS_MS;
+
+  // Single attribute-order-independent regex: <a href="t.me/Chan/NNN" ...> ... <time datetime="...">
+  // The /\d+ suffix on the URL ensures we only match message links, not channel root links.
+  const dateAnchorRe = /<a\b[^>]*\bhref="(https:\/\/t\.me\/[\w.]+\/\d+)"[^>]*>[\s\S]{0,300}?<time\b[^>]*\bdatetime="([^"]+)"/gi;
+  const matches = [...html.matchAll(dateAnchorRe)];
+
   const items: any[] = [];
-
-  // Strategy: find all (link, datetime) pairs from the stable date-anchor elements,
-  // then look backwards in the HTML chunk for the message text div.
-  const dateLinkRe = /<a[^>]+class="tgme_widget_message_date"[^>]+href="(https:\/\/t\.me\/[^"]+)"[^>]*>[\s\S]{0,200}?<time[^>]+datetime="([^"]+)"/gi;
-  const matches = [...html.matchAll(dateLinkRe)];
-
-  if (matches.length === 0) {
-    // Fallback: try alternate structure where datetime comes first
-    const altRe = /<time[^>]+datetime="([^"]+)"[\s\S]{0,300}?<a[^>]+href="(https:\/\/t\.me\/[^"]+)"/gi;
-    for (const m of html.matchAll(altRe)) {
-      matches.push({ ...m, index: m.index!, 1: m[2], 2: m[1] } as any);
-    }
-  }
 
   for (const m of matches) {
     const link    = m[1];
-    const pubDate = m[2];
-    const pos     = m.index ?? 0;
+    const rawDate = m[2];
 
-    // Search the chunk BEFORE this date link for the message text
+    // Validate and filter stale dates
+    const parsed = new Date(rawDate);
+    if (isNaN(parsed.getTime())) continue;
+    if (parsed.getTime() < cutoff) continue;          // discard items > 30 days old
+
+    const pos = m.index ?? 0;
+
+    // Search backwards from the match for the nearest .tgme_widget_message_text div
     const chunkStart = Math.max(0, pos - 4000);
-    const chunk      = html.substring(chunkStart, pos + 200);
+    const chunk      = html.substring(chunkStart, pos + 100);
 
-    // Try class="tgme_widget_message_text" first, then any tgme_widget_message_text variant
     const textRe = /<div[^>]+class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
     let lastText: string | null = null;
     for (const tm of chunk.matchAll(textRe)) {
@@ -106,19 +125,20 @@ function parseTelegramHTML(html: string, channel: string): any[] {
 
     if (!lastText) continue;
 
-    const title = lastText.split('\n')[0].substring(0, 120);
     items.push({
-      title,
+      title:       lastText.split('\n')[0].substring(0, 120),
       description: lastText,
       link,
-      pubDate,
-      source: `t.me/${channel}`,
+      pubDate:     parsed.toISOString(),
+      source:      `t.me/${channel}`,
     });
   }
 
-  // De-duplicate by link
+  // De-duplicate by link, return most recent first
   const seen = new Set<string>();
-  return items.filter(i => { if (seen.has(i.link)) return false; seen.add(i.link); return true; });
+  return items
+    .filter(i => { if (seen.has(i.link)) return false; seen.add(i.link); return true; })
+    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 }
 
 function parseRSSItems(xml: string, sourceName: string): any[] {
@@ -132,17 +152,19 @@ function parseRSSItems(xml: string, sourceName: string): any[] {
     const title = stripHtml(getTag('title'));
     const desc  = stripHtml(getTag('description') || getTag('summary'));
     const raw   = getTag('pubDate') || getTag('published') || getTag('dc:date') || '';
-    // Validate the date — if invalid or missing, use now so items don't appear stale
     const parsedDate = raw ? new Date(raw) : null;
-    const pubDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : new Date().toISOString();
+    // If RSS date is invalid or missing, default to now — never show "53y ago"
+    const pubDate = parsedDate && !isNaN(parsedDate.getTime())
+      ? parsedDate.toISOString()
+      : new Date().toISOString();
 
     if (!title) continue;
     items.push({
-      title: title.length > 120 ? title.substring(0, 120) + '...' : title,
+      title:       title.length > 120 ? title.substring(0, 120) + '...' : title,
       description: desc || title,
-      link:    getTag('link') || getTag('guid'),
+      link:        getTag('link') || getTag('guid'),
       pubDate,
-      source:  sourceName,
+      source:      sourceName,
     });
   }
   return items;
@@ -154,20 +176,20 @@ export async function GET() {
     const telegramResults = await Promise.allSettled(
       TELEGRAM_CHANNELS.map(async (channel) => {
         try {
-          const res = await fetch(`https://t.me/s/${channel}?_=${Date.now()}`, {
+          const res = await fetch(`https://t.me/s/${channel}`, {
             signal:  AbortSignal.timeout(8000),
-            // cache:'no-store' prevents Next.js Data Cache from freezing Telegram responses
             cache:   'no-store',
             headers: {
-              'User-Agent':       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-              'Accept':           'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language':  'en-US,en;q=0.9',
-              'Cache-Control':    'no-cache',
+              'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+              'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Cache-Control':   'no-cache',
             },
           });
           if (!res.ok) return [];
           const html = await res.text();
-          return parseTelegramHTML(html, channel).slice(-10);
+          const parsed = parseTelegramHTML(html, channel);
+          return parsed.slice(0, 10);
         } catch {
           return [];
         }
@@ -179,20 +201,15 @@ export async function GET() {
       if (r.status === 'fulfilled') allArticles.push(...r.value);
     }
 
-    // ── 2. RSS fallback (used when Telegram is IP-blocked) ───────────────────
+    // ── 2. RSS fallback ───────────────────────────────────────────────────────
     if (allArticles.length === 0) {
       const rssResults = await Promise.allSettled(
         Object.entries(FALLBACK_FEEDS).map(async ([source, url]) => {
           try {
-            const res = await fetch(url, {
-              signal: AbortSignal.timeout(6000),
-              cache:  'no-store',
-            });
+            const res = await fetch(url, { signal: AbortSignal.timeout(6000), cache: 'no-store' });
             if (!res.ok) return [];
             return parseRSSItems(await res.text(), source).slice(0, 6);
-          } catch {
-            return [];
-          }
+          } catch { return []; }
         })
       );
       for (const r of rssResults) {
@@ -213,7 +230,7 @@ export async function GET() {
         published:   a.pubDate,
         source:      a.source,
         risk_score:  score,
-        coords:      coords,
+        coords,
         coords_default: !coords,
         machine_assessment: score >= 8
           ? 'AI analysis indicates elevated tactical priority based on OSINT stream patterns.'
@@ -223,13 +240,12 @@ export async function GET() {
 
     newsItems.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
 
-    // no-store: never serve stale intel from CDN or shared caches
     return NextResponse.json(
       { news: newsItems, total: newsItems.length, timestamp: new Date().toISOString() },
       { headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
 
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { news: [], error: 'Failed to fetch intel', timestamp: new Date().toISOString() },
       { status: 500, headers: { 'Cache-Control': 'no-store' } }

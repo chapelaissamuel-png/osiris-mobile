@@ -12,6 +12,7 @@ export async function GET() {
     const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
     const res = await fetch(url, {
       signal: AbortSignal.timeout(10000),
+      cache:  'no-store',
     });
 
     if (!res.ok) {
@@ -54,4 +55,3 @@ export async function GET() {
     return NextResponse.json({ earthquakes: [], error: 'Failed to fetch earthquake data' }, { status: 500 });
   }
 }
-
