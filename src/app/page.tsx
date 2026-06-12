@@ -108,6 +108,7 @@ export default function Dashboard() {
   const [showScmPanel, setShowScmPanel] = useState(true);
   const [showIntel, setShowIntel] = useState(false);
   const [showEntityGraph, setShowEntityGraph] = useState(false);
+  const [showSigint, setShowSigint] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|'recon'|null>(null);
   const [mapProjection, setMapProjection] = useState<'globe'|'mercator'>('globe');
@@ -930,9 +931,30 @@ export default function Dashboard() {
         </div>
 
         <div className="relative group">
-          <button onClick={() => { setShowEntityGraph(!showEntityGraph); setShowIntel(false); setShowMarkets(false); setShowAlerts(false); }} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showEntityGraph ? 'bg-[#D4AF37]/20' : 'hover:bg-white/10'}`}>
+          <button onClick={() => { setShowEntityGraph(!showEntityGraph); setShowIntel(false); setShowMarkets(false); setShowAlerts(false); setShowSigint(false); }} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showEntityGraph ? 'bg-[#D4AF37]/20' : 'hover:bg-white/10'}`}>
             <Network className={`w-4 h-4 ${showEntityGraph ? 'text-[#D4AF37]' : 'text-white/60'}`} />
           </button>
+        </div>
+
+        {/* ── SIGINT NEWS FEED (IntelFeed) ── */}
+        <div className="relative group">
+          <button
+            onClick={() => { setShowSigint(!showSigint); setShowIntel(false); setShowMarkets(false); setShowAlerts(false); setShowEntityGraph(false); }}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showSigint ? 'bg-[var(--gold-primary)]/20' : 'hover:bg-white/10'}`}
+            title="SIGINT Feed — AI-classified news"
+          >
+            <Newspaper className={`w-4 h-4 ${showSigint ? 'text-[var(--gold-primary)]' : 'text-white/60'}`} />
+          </button>
+          {data.news?.some((n: any) => n.threat_level === 'critical') && !showSigint && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#FF3D3D] animate-osiris-pulse" />
+          )}
+          <AnimatePresence>
+            {showSigint && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="absolute right-12 top-1/2 -translate-y-1/2 w-96">
+                <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>}
 

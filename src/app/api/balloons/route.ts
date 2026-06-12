@@ -47,14 +47,23 @@ function statusColor(status: Balloon['status']): string {
 }
 
 async function fetchSondeHub(): Promise<Balloon[]> {
-  const res = await fetch('https://api.v2.sondehub.org/balloons', {
-    signal: AbortSignal.timeout(10000),
+  // Try /balloons first (active sondes), fall back to /sondes/telemetry?duration=1h
+  let res = await fetch('https://api.v2.sondehub.org/balloons', {
+    signal: AbortSignal.timeout(15000),
     cache:  'no-store',
     headers: {
       'User-Agent': 'OSIRIS-Intelligence-Platform/4.0',
       'Accept':     'application/json',
+      'Accept-Encoding': 'identity',
     },
   });
+  if (!res.ok) {
+    res = await fetch('https://api.v2.sondehub.org/sondes/telemetry?duration=1h&limit=500', {
+      signal: AbortSignal.timeout(15000),
+      cache:  'no-store',
+      headers: { 'User-Agent': 'OSIRIS/4.0', 'Accept': 'application/json' },
+    });
+  }
 
   if (!res.ok) throw new Error(`SondeHub HTTP ${res.status}`);
 
