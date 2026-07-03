@@ -33,7 +33,7 @@ const TELEGRAM_CHANNELS = [
 ];
 
 const FALLBACK_FEEDS: Record<string, string> = {
-  Reuters:       'https://feeds.reuters.com/reuters/worldNews',
+  Reuters:       'https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en',
   'Al Jazeera':  'https://www.aljazeera.com/xml/rss/all.xml',
   BBC:           'https://feeds.bbci.co.uk/news/world/rss.xml',
   GDACS:         'https://www.gdacs.org/xml/rss.xml',
