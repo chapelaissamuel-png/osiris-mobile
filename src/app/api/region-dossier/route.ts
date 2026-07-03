@@ -42,15 +42,23 @@ export async function GET(request: Request) {
     // Steps 2–4: Run in PARALLEL after geocode (Fixes #115 — was a sequential waterfall)
     const [countryResult, wikiResult, hosResult] = await Promise.allSettled([
 
-      // Step 2: Fetch country details from RestCountries
+      // Step 2: Fetch country details from RestCountries v5
       (async () => {
         if (!countryCode) return null;
+        const key = process.env.REST_COUNTRIES_KEY || '';
+        if (!key) { console.warn('[OSIRIS] REST_COUNTRIES_KEY not set'); return null; }
         try {
           const res = await fetch(
-            `https://restcountries.com/v3.1/alpha/${countryCode}?fields=name,capital,population,area,region,subregion,languages,currencies,flag,flags,timezones`,
-            { signal: AbortSignal.timeout(5000) }
+            `https://api.restcountries.com/countries/v5/codes.alpha_2/${countryCode.toLowerCase()}`,
+            {
+              headers: { Authorization: `Bearer ${key}` },
+              signal: AbortSignal.timeout(8000),
+            }
           );
-          if (res.ok) return await res.json();
+          if (res.ok) {
+            const json = await res.json();
+            return json?.data?.objects?.[0] ?? null;
+          }
         } catch (e) { console.warn('[OSIRIS] Country fetch error:', e instanceof Error ? e.message : e); }
         return null;
       })(),
@@ -119,19 +127,19 @@ export async function GET(request: Request) {
       coordinates: { lat, lng },
       location: locationInfo,
       country: countryData ? {
-        name: countryData.name?.common,
-        official_name: countryData.name?.official,
-        capital: countryData.capital?.[0],
+        name: countryData.names?.common,
+        official_name: countryData.names?.official,
+        capital: countryData.capitals?.[0]?.name,
         population: countryData.population,
-        area: countryData.area,
+        area: countryData.area?.kilometers,
         region: countryData.region,
         subregion: countryData.subregion,
-        languages: countryData.languages ? Object.values(countryData.languages) : [],
+        languages: countryData.languages ? countryData.languages.map((l: any) => l.name) : [],
         currencies: countryData.currencies
-          ? Object.entries(countryData.currencies).map(([code, info]: [string, any]) => `${info.name} (${info.symbol || code})`)
+          ? countryData.currencies.map((c: any) => `${c.name} (${c.symbol || c.code})`)
           : [],
-        flag: countryData.flag,
-        flag_url: countryData.flags?.svg,
+        flag: countryData.flag?.emoji,
+        flag_url: countryData.flag?.url_svg,
         timezones: countryData.timezones,
       } : null,
       head_of_state: headOfState,
